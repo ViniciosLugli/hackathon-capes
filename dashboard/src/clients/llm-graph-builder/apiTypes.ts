@@ -37,7 +37,7 @@ export interface MetricParams {
 	mode: string
 }
 
-export interface APIResponse<T = unknown> {
+export interface APIResponse<T = any> {
 	status: string
 	data: T
 	message?: string

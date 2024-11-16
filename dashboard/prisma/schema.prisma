@@ -8,41 +8,56 @@ datasource db {
 }
 
 model Article {
-    id              String    @id @default(cuid())
-    doi             String?   @unique
+    id              String  @id
+    doi             String? @unique
     title           String
-    abstract        String    @db.Text
+    abstract        String  @db.Text
     language        String
     volume          String?
     issue           String?
-    pageStart       Int?
-    pageEnd         Int?
-    publicationDate DateTime?
+    publicationYear Int?
+
+    publicationType String?
     authors         String[]
     institutions    String[]
 
-    // Publication details
-    journalName   String?
     publisherName String?
+    journalName   String?
+    issn          String?
 
-    // Classification
-    topics    Topic[]
-    keywords  Keyword[]
-    fieldArea FieldArea[]
+    topics     Topic[]     @relation("ArticleTopics")
+    keywords   Keyword[]
+    fieldAreas FieldArea[]
 
-    // Status and access
-    status       ArticleStatus @default(PUBLISHED)
-    isOpenAccess Boolean       @default(false)
-    peerReviewed Boolean       @default(false)
+    status         ArticleStatus @default(PUBLISHED)
+    isOpenAccess   Boolean       @default(false)
+    isPeerReviewed Boolean       @default(false)
 
-    // References and metrics
-    citations Citation[] @relation("CitingArticles")
-    citedBy   Citation[] @relation("CitedArticles")
-    metrics   Metrics?
+    citationsMade     Citation[] @relation("CitationsMade")
+    citationsReceived Citation[] @relation("CitationsReceived")
 
-    // Quality metrics
-    qualityScore     Float? @default(0)
-    readabilityScore Float? @default(0)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}
+
+model Citation {
+    id              String  @id @default(cuid())
+    citingArticle   Article @relation("CitationsMade", fields: [citingArticleId], references: [id])
+    citingArticleId String
+
+    citedArticle   Article? @relation("CitationsReceived", fields: [citedArticleId], references: [id])
+    citedArticleId String?
+
+    citedSiteId  String?
+    citedDoi     String?
+    citedTitle   String?
+    citedAuthors String[] @default([])
+    citedJournal String?
+    citedVolume  String?
+    citedIssue   String?
+    citedPages   String?
+    citedYear    Int?
+    citedUrl     String?
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -52,7 +67,7 @@ model Topic {
     id          String    @id @default(cuid())
     name        String    @unique
     description String?   @db.Text
-    articles    Article[]
+    articles    Article[] @relation("ArticleTopics")
     parentTopic Topic?    @relation("TopicHierarchy", fields: [parentId], references: [id])
     parentId    String?
     subtopics   Topic[]   @relation("TopicHierarchy")
@@ -75,31 +90,6 @@ model Keyword {
     articles  Article[]
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
-}
-
-model Citation {
-    id              String   @id @default(cuid())
-    citingArticle   Article  @relation("CitingArticles", fields: [citingArticleId], references: [id])
-    citingArticleId String
-    citedArticle    Article  @relation("CitedArticles", fields: [citedArticleId], references: [id])
-    citedArticleId  String
-    citationText    String   @db.Text
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
-
-    @@unique([citingArticleId, citedArticleId])
-}
-
-model Metrics {
-    id             String   @id @default(cuid())
-    article        Article  @relation(fields: [articleId], references: [id])
-    articleId      String   @unique
-    citations      Int      @default(0)
-    views          Int      @default(0)
-    downloads      Int      @default(0)
-    altmetricScore Float?
-    createdAt      DateTime @default(now())
-    updatedAt      DateTime @updatedAt
 }
 
 enum ArticleStatus {

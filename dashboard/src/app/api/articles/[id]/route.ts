@@ -1,44 +1,70 @@
-import { NextResponse } from 'next/server'
-import { prisma } from '@/app/lib/prisma'
-import { ArticleUpdateInput } from '@/types'
+import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+const prisma = new PrismaClient()
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+	const { id } = params
+
 	try {
 		const article = await prisma.article.findUnique({
-			where: { id: params.id },
-			include: { topics: true, keywords: true, fieldArea: true },
+			where: { id },
+			include: {
+				topics: true,
+				citationsMade: true,
+				citationsReceived: true,
+			},
 		})
+
 		if (!article) {
 			return NextResponse.json({ error: 'Article not found' }, { status: 404 })
 		}
-		return NextResponse.json(article)
+
+		return NextResponse.json(article, { status: 200 })
 	} catch (error) {
-		console.error('Error fetching article:', error)
-		return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+		console.error('Error in GET API route:', error)
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
 	}
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+	const { id } = params
+
 	try {
-		const body: ArticleUpdateInput = await request.json()
-		const article = await prisma.article.update({
-			where: { id: params.id },
-			data: body,
-			include: { topics: true, keywords: true, fieldArea: true },
+		const article = await prisma.article.findUnique({
+			where: { id },
 		})
-		return NextResponse.json(article)
-	} catch (error) {
-		console.error('Error updating article:', error)
-		return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
-	}
-}
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
-	try {
-		await prisma.article.delete({ where: { id: params.id } })
-		return NextResponse.json({ message: 'Article deleted successfully' })
+		if (!article) {
+			return NextResponse.json({ error: 'Article not found' }, { status: 404 })
+		}
+
+		await prisma.$transaction(async (prisma) => {
+			await prisma.citation.deleteMany({
+				where: { citingArticleId: id },
+			})
+
+			await prisma.citation.deleteMany({
+				where: { citedArticleId: id },
+			})
+
+			await prisma.article.update({
+				where: { id },
+				data: {
+					topics: {
+						set: [],
+					},
+				},
+			})
+
+			await prisma.article.delete({
+				where: { id },
+			})
+		})
+
+		return NextResponse.json({ message: 'Article and related data deleted successfully' }, { status: 200 })
 	} catch (error) {
-		console.error('Error deleting article:', error)
-		return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+		console.error('Error in DELETE API route:', error)
+		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
 	}
 }

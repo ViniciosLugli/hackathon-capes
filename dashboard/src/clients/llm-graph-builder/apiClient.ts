@@ -43,9 +43,13 @@ export class LLMGraphBuilderClient {
 	async populateGraphSchema(params: PopulateGraphSchemaParams): Promise<APIResponse> {
 		return fetchAPI(`${this.baseUrl}/populate_graph_schema`, 'POST', params)
 	}
-
 	async chatBot(params: ChatBotParams): Promise<APIResponse> {
-		return fetchAPI(`${this.baseUrl}/chat_bot`, 'POST', params)
+		const adjustedParams = {
+			...params,
+			document_names: JSON.stringify(params.document_names || []),
+		}
+
+		return fetchAPI(`${this.baseUrl}/chat_bot`, 'POST', adjustedParams)
 	}
 
 	async evaluateResponse(params: MetricParams): Promise<APIResponse> {
