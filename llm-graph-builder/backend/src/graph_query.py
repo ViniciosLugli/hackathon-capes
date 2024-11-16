@@ -1,5 +1,5 @@
 import logging
-from neo4j import time 
+from neo4j import time
 from neo4j import GraphDatabase
 import os
 import json
@@ -28,7 +28,7 @@ def get_graphDB_driver(uri, username, password,database="neo4j"):
     except Exception as e:
         error_message = f"graph_query module: Failed to connect to the database at {uri}."
         logging.error(error_message, exc_info=True)
-        # raise Exception(error_message) from e 
+        # raise Exception(error_message) from e
 
 
 def execute_query(driver, query,document_names,doc_limit=None):
@@ -65,7 +65,7 @@ def process_node(node):
         labels.discard("__Entity__")
         if not labels:
             labels.add('*')
-        
+
         node_element = {
             "element_id": node.element_id,
             "labels": list(labels),
@@ -95,7 +95,7 @@ def extract_node_elements(records):
     list of dict: A list containing processed node dictionaries.
     """
     node_elements = []
-    seen_element_ids = set()  
+    seen_element_ids = set()
 
     try:
         for record in records:
@@ -109,7 +109,7 @@ def extract_node_elements(records):
                     # logging.debug(f"Skipping already processed node with ID: {node.element_id}")
                     continue
                 seen_element_ids.add(node.element_id)
-                node_element = process_node(node) 
+                node_element = process_node(node)
                 node_elements.append(node_element)
                 # logging.info(f"Processed node with ID: {node.element_id}")
 
@@ -168,18 +168,18 @@ def get_completed_documents(driver):
     Retrieves the names of all documents with the status 'Completed' from the database.
     """
     docs_query = "MATCH(node:Document {status:'Completed'}) RETURN node"
-    
+
     try:
         logging.info("Executing query to retrieve completed documents.")
         records, summary, keys = driver.execute_query(docs_query)
         logging.info(f"Query executed successfully, retrieved {len(records)} records.")
         documents = [record["node"]["fileName"] for record in records]
         logging.info("Document names extracted successfully.")
-        
+
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         documents = []
-    
+
     return documents
 
 
@@ -200,7 +200,7 @@ def get_graph_results(uri, username, password,database,document_names):
     """
     try:
         logging.info(f"Starting graph query process")
-        driver = get_graphDB_driver(uri, username, password,database)  
+        driver = get_graphDB_driver(uri, username, password,database)
         document_names= list(map(str.strip, json.loads(document_names)))
         query = GRAPH_QUERY.format(graph_chunk_limit=GRAPH_CHUNK_LIMIT)
         records, summary , keys = execute_query(driver, query.strip(), document_names)

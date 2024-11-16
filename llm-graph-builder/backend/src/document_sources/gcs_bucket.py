@@ -26,9 +26,9 @@ def get_gcs_bucket_files_info(gcs_project_id, gcs_bucket_name, gcs_bucket_folder
             file_size = blob.size
             source_url= blob.media_link
             gcs_bucket = gcs_bucket_name
-            lst_file_metadata.append({'fileName':file_name,'fileSize':file_size,'url':source_url, 
+            lst_file_metadata.append({'fileName':file_name,'fileSize':file_size,'url':source_url,
                                       'gcsBucket': gcs_bucket, 'gcsBucketFolder':folder_name if folder_name else '',
-                                      'gcsProjectId': gcs_project_id}) 
+                                      'gcsProjectId': gcs_project_id})
         return lst_file_metadata
       else:
         file_name=''
@@ -51,12 +51,12 @@ def get_documents_from_gcs(gcs_project_id, gcs_bucket_name, gcs_bucket_folder, g
     if gcs_bucket_folder.endswith('/'):
       blob_name = gcs_bucket_folder+gcs_blob_filename
     else:
-      blob_name = gcs_bucket_folder+'/'+gcs_blob_filename 
+      blob_name = gcs_bucket_folder+'/'+gcs_blob_filename
   else:
-      blob_name = gcs_blob_filename  
-  
-  logging.info(f"GCS project_id : {gcs_project_id}")  
- 
+      blob_name = gcs_blob_filename
+
+  logging.info(f"GCS project_id : {gcs_project_id}")
+
   if access_token is None:
     storage_client = storage.Client(project=gcs_project_id)
     loader = GCSFileLoader(project_name=gcs_project_id, bucket=gcs_bucket_name, blob=blob_name, loader_func=load_document_content)
@@ -64,9 +64,9 @@ def get_documents_from_gcs(gcs_project_id, gcs_bucket_name, gcs_bucket_folder, g
   else:
     creds= Credentials(access_token)
     storage_client = storage.Client(project=gcs_project_id, credentials=creds)
-  
+
     bucket = storage_client.bucket(gcs_bucket_name)
-    blob = bucket.blob(blob_name) 
+    blob = bucket.blob(blob_name)
     if blob.exists():
       content = blob.download_as_bytes()
       pdf_file = io.BytesIO(content)
@@ -83,7 +83,7 @@ def get_documents_from_gcs(gcs_project_id, gcs_bucket_name, gcs_bucket_folder, g
 def upload_file_to_gcs(file_chunk, chunk_number, original_file_name, bucket_name, folder_name_sha1_hashed):
   try:
     storage_client = storage.Client()
-  
+
     file_name = f'{original_file_name}_part_{chunk_number}'
     bucket = storage_client.bucket(bucket_name)
     file_data = file_chunk.file.read()
@@ -96,7 +96,7 @@ def upload_file_to_gcs(file_chunk, chunk_number, original_file_name, bucket_name
     logging.info('Chunk uploaded successfully in gcs')
   except Exception as e:
     raise Exception('Error in while uploading the file chunks on GCS')
-  
+
 def merge_file_gcs(bucket_name, original_file_name: str, folder_name_sha1_hashed, total_chunks):
   try:
       storage_client = storage.Client()
@@ -107,12 +107,12 @@ def merge_file_gcs(bucket_name, original_file_name: str, folder_name_sha1_hashed
       chunks = []
       for i in range(1,total_chunks+1):
         blob_name = folder_name_sha1_hashed + '/' + f"{original_file_name}_part_{i}"
-        blob = bucket.blob(blob_name) 
+        blob = bucket.blob(blob_name)
         if blob.exists():
           print(f'Blob Name: {blob.name}')
           chunks.append(blob.download_as_bytes())
         blob.delete()
-      
+
       merged_file = b"".join(chunks)
       file_name_with__hashed_folder = folder_name_sha1_hashed +'/'+original_file_name
       logging.info(f'GCS folder path in merge: {file_name_with__hashed_folder}')
@@ -122,11 +122,11 @@ def merge_file_gcs(bucket_name, original_file_name: str, folder_name_sha1_hashed
       blob.upload_from_file(file_io)
       # pdf_reader = PdfReader(file_io)
       file_size = len(merged_file)
-      
+
       return file_size
   except Exception as e:
     raise Exception('Error in while merge the files chunks on GCS')
-  
+
 def delete_file_from_gcs(bucket_name,folder_name, file_name):
   try:
     storage_client = storage.Client()
@@ -138,7 +138,7 @@ def delete_file_from_gcs(bucket_name,folder_name, file_name):
     logging.info('File deleted from GCS successfully')
   except Exception as e:
     raise Exception(e)
-  
+
 def copy_failed_file(source_bucket_name,dest_bucket_name,folder_name, file_name):
   try:
     storage_client = storage.Client()
@@ -149,4 +149,4 @@ def copy_failed_file(source_bucket_name,dest_bucket_name,folder_name, file_name)
     source_bucket.copy_blob(source_blob, dest_bucket, file_name)
     logging.info(f'Failed file {file_name} copied to {dest_bucket_name} from {source_bucket_name} in GCS successfully')
   except Exception as e:
-    raise Exception(e)  
+    raise Exception(e)

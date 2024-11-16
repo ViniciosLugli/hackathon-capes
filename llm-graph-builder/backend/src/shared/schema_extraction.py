@@ -27,22 +27,22 @@ PROMPT_TEMPLATE_WITHOUT_SCHEMA = (
 )
 
 def schema_extraction_from_text(input_text:str, model:str, is_schema_description_cheked:bool):
-    
+
     llm, model_name = get_llm(model)
     if is_schema_description_cheked:
         schema_prompt = PROMPT_TEMPLATE_WITH_SCHEMA
     else:
         schema_prompt = PROMPT_TEMPLATE_WITHOUT_SCHEMA
-        
+
     prompt = ChatPromptTemplate.from_messages(
     [("system", schema_prompt), ("user", "{text}")]
     )
-    
+
     runnable = prompt | llm.with_structured_output(
         schema=Schema,
         method="function_calling",
         include_raw=False,
     )
-    
+
     raw_schema = runnable.invoke({"text": input_text})
     return raw_schema

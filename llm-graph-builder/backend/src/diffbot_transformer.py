@@ -15,4 +15,3 @@ def get_graph_from_diffbot(graph,chunkId_chunkDoc_list:List):
     graph_documents = llm.convert_to_graph_documents(combined_chunk_document_list)
     return graph_documents
 
-    

@@ -25,7 +25,7 @@ def load_document_content(file_path):
     else:
         print("in else")
         return UnstructuredFileLoader(file_path, mode="elements",autodetect_encoding=True)
-    
+
 def get_documents_from_file_by_path(file_path,file_name):
     file_path = Path(file_path)
     if file_path.exists():
@@ -37,8 +37,8 @@ def get_documents_from_file_by_path(file_path,file_name):
             if file_extension == ".pdf":
                 pages = loader.load()
             else:
-                unstructured_pages = loader.load()   
-                pages= get_pages_with_page_numbers(unstructured_pages)      
+                unstructured_pages = loader.load()
+                pages= get_pages_with_page_numbers(unstructured_pages)
         except Exception as e:
             raise Exception('Error while reading the file content or metadata')
     else:
@@ -57,25 +57,25 @@ def get_pages_with_page_numbers(unstructured_pages):
                 page_content += page.page_content
                 metadata = {'source':page.metadata['source'],'page_number':page_number, 'filename':page.metadata['filename'],
                         'filetype':page.metadata['filetype']}
-                
+
             if page.metadata['page_number']>page_number:
                 page_number+=1
                 # if not metadata:
                 #     metadata = {'total_pages':unstructured_pages[-1].metadata['page_number']}
                 pages.append(Document(page_content = page_content))
-                page_content='' 
-                
+                page_content=''
+
             if page == unstructured_pages[-1]:
                 # if not metadata:
                 #     metadata = {'total_pages':unstructured_pages[-1].metadata['page_number']}
                 pages.append(Document(page_content = page_content))
-                    
+
         elif page.metadata['category']=='PageBreak' and page!=unstructured_pages[0]:
             page_number+=1
             pages.append(Document(page_content = page_content, metadata=metadata))
             page_content=''
             metadata={}
-        
+
         else:
             page_content += page.page_content
             metadata_with_custom_page_number = {'source':page.metadata['source'],
@@ -83,4 +83,4 @@ def get_pages_with_page_numbers(unstructured_pages):
                             'filetype':page.metadata['filetype']}
             if page == unstructured_pages[-1]:
                     pages.append(Document(page_content = page_content, metadata=metadata_with_custom_page_number))
-    return pages                
+    return pages

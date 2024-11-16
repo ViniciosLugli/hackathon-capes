@@ -11,10 +11,10 @@ FULL_TEXT_QUERY = "CREATE FULLTEXT INDEX entities FOR (n{labels_str}) ON EACH [n
 FILTER_LABELS = ["Chunk","Document","__Community__"]
 
 HYBRID_SEARCH_INDEX_DROP_QUERY = "DROP INDEX keyword IF EXISTS;"
-HYBRID_SEARCH_FULL_TEXT_QUERY = "CREATE FULLTEXT INDEX keyword FOR (n:Chunk) ON EACH [n.text]" 
+HYBRID_SEARCH_FULL_TEXT_QUERY = "CREATE FULLTEXT INDEX keyword FOR (n:Chunk) ON EACH [n.text]"
 
 COMMUNITY_INDEX_DROP_QUERY = "DROP INDEX community_keyword IF EXISTS;"
-COMMUNITY_INDEX_FULL_TEXT_QUERY = "CREATE FULLTEXT INDEX community_keyword FOR (n:`__Community__`) ON EACH [n.summary]" 
+COMMUNITY_INDEX_FULL_TEXT_QUERY = "CREATE FULLTEXT INDEX community_keyword FOR (n:`__Community__`) ON EACH [n.summary]"
 
 CHUNK_VECTOR_INDEX_NAME = "vector"
 CHUNK_VECTOR_EMBEDDING_DIMENSION = 384
@@ -33,7 +33,7 @@ OPTIONS {{
 def create_vector_index(driver, index_type, embedding_dimension=None):
     drop_query = ""
     query = ""
-    
+
     if index_type == CHUNK_VECTOR_INDEX_NAME:
         drop_query = DROP_CHUNK_VECTOR_INDEX_QUERY
         query = CREATE_CHUNK_VECTOR_INDEX_QUERY.format(
@@ -61,7 +61,7 @@ def create_vector_index(driver, index_type, embedding_dimension=None):
                 logging.info(f"Created vector index in {time.time() - start_step:.2f} seconds.")
             except Exception as e:
                 logging.error(f"Failed to create vector index: {e}")
-                return  
+                return
     except Exception as e:
         logging.error("An error occurred while creating the vector index.", exc_info=True)
         logging.error(f"Error details: {str(e)}")
@@ -89,7 +89,7 @@ def create_fulltext(driver,type):
                     start_step = time.time()
                     result = session.run(LABELS_QUERY)
                     labels = [record["label"] for record in result]
-                    
+
                     for label in FILTER_LABELS:
                         if label in labels:
                             labels.remove(label)
@@ -162,14 +162,14 @@ def create_entity_embedding(graph:Neo4jGraph):
     rows = fetch_entities_for_embedding(graph)
     for i in range(0, len(rows), 1000):
         update_embeddings(rows[i:i+1000],graph)
-            
+
 def fetch_entities_for_embedding(graph):
     query = """
                 MATCH (e)
                 WHERE NOT (e:Chunk OR e:Document OR e:`__Community__`) AND e.embedding IS NULL AND e.id IS NOT NULL
                 RETURN elementId(e) AS elementId, e.id + " " + coalesce(e.description, "") AS text
                 """
-    result = graph.query(query)           
+    result = graph.query(query)
     return [{"elementId": record["elementId"], "text": record["text"]} for record in result]
 
 def update_embeddings(rows, graph):
@@ -177,10 +177,10 @@ def update_embeddings(rows, graph):
     embeddings, dimension = load_embedding_model(embedding_model)
     logging.info(f"update embedding for entities")
     for row in rows:
-        row['embedding'] = embeddings.embed_query(row['text'])                        
+        row['embedding'] = embeddings.embed_query(row['text'])
     query = """
       UNWIND $rows AS row
       MATCH (e) WHERE elementId(e) = row.elementId
       CALL db.create.setNodeVectorProperty(e, "embedding", row.embedding)
-      """  
-    return graph.query(query,params={'rows':rows})          
+      """
+    return graph.query(query,params={'rows':rows})

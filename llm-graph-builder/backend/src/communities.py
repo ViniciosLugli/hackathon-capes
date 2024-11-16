@@ -2,7 +2,7 @@ import logging
 from graphdatascience import GraphDataScience
 from src.llm import get_llm
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser 
+from langchain_core.output_parsers import StrOutputParser
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 from src.shared.common_fn import load_embedding_model
@@ -12,8 +12,8 @@ COMMUNITY_PROJECTION_NAME = "communities"
 NODE_PROJECTION = "!Chunk&!Document&!__Community__"
 NODE_PROJECTION_ENTITY = "__Entity__"
 MAX_WORKERS = 10
-MAX_COMMUNITY_LEVELS = 3 
-MIN_COMMUNITY_SIZE = 1 
+MAX_COMMUNITY_LEVELS = 3
+MIN_COMMUNITY_SIZE = 1
 COMMUNITY_CREATION_DEFAULT_MODEL = "openai_gpt_4o"
 
 
@@ -109,7 +109,7 @@ UNWIND $data AS row
 MERGE (c:__Community__ {id:row.community})
 SET c.summary = row.summary,
     c.title = row.title
-""" 
+"""
 
 
 COMMUNITY_SYSTEM_TEMPLATE = "Given input triples, generate the information summary. No pre-amble."
@@ -128,7 +128,7 @@ summary: This is an example summary that describes the key information of this c
 
 PARENT_COMMUNITY_SYSTEM_TEMPLATE = "Given an input list of community summaries, generate a summary of the information"
 
-PARENT_COMMUNITY_TEMPLATE = """Based on the provided list of community summaries that belong to the same graph community, 
+PARENT_COMMUNITY_TEMPLATE = """Based on the provided list of community summaries that belong to the same graph community,
 generate following output in exact format
 title: A concise title, no more than 4 words,
 summary: A natural language summary of the information. Include all the necessary information as much as possible.
@@ -138,7 +138,7 @@ summary: A natural language summary of the information. Include all the necessar
 Example output:
 title: Example Title,
 summary: This is an example summary that describes the key information of this community.
-""" 
+"""
 
 
 GET_COMMUNITY_DETAILS = """
@@ -151,7 +151,7 @@ WRITE_COMMUNITY_EMBEDDINGS = """
 UNWIND $rows AS row
 MATCH (c) WHERE c.id = row.communityId
 CALL db.create.setNodeVectorProperty(c, "embedding", row.embedding)
-"""  
+"""
 
 DROP_COMMUNITIES = "MATCH (c:`__Community__`) DETACH DELETE c"
 DROP_COMMUNITY_PROPERTY = "MATCH (e:`__Entity__`) REMOVE e.communities"
@@ -169,7 +169,7 @@ OPTIONS {{
     `vector.similarity_function`: 'cosine'
   }}
 }}
-""" 
+"""
 
 COMMUNITY_VECTOR_INDEX_NAME = "community_vector"
 COMMUNITY_VECTOR_EMBEDDING_DIMENSION = 384
@@ -183,11 +183,11 @@ OPTIONS {{
     `vector.similarity_function`: 'cosine'
   }}
 }}
-""" 
+"""
 
 COMMUNITY_FULLTEXT_INDEX_NAME = "community_keyword"
 COMMUNITY_FULLTEXT_INDEX_DROP_QUERY = f"DROP INDEX  {COMMUNITY_FULLTEXT_INDEX_NAME} IF EXISTS;"
-COMMUNITY_INDEX_FULL_TEXT_QUERY = f"CREATE FULLTEXT INDEX {COMMUNITY_FULLTEXT_INDEX_NAME} FOR (n:`__Community__`) ON EACH [n.summary]" 
+COMMUNITY_INDEX_FULL_TEXT_QUERY = f"CREATE FULLTEXT INDEX {COMMUNITY_FULLTEXT_INDEX_NAME} FOR (n:`__Community__`) ON EACH [n.summary]"
 
 
 
@@ -208,11 +208,11 @@ def create_community_graph_projection(gds, project_name=COMMUNITY_PROJECTION_NAM
     try:
         existing_projects = gds.graph.list()
         project_exists = existing_projects["graphName"].str.contains(project_name, regex=False).any()
-        
+
         if project_exists:
             logging.info(f"Projection '{project_name}' already exists. Dropping it.")
             gds.graph.drop(project_name)
-        
+
         logging.info(f"Creating new graph project '{project_name}'.")
         projection_query = CREATE_COMMUNITY_GRAPH_PROJECTION.format(node_projection=node_projection,project_name=project_name)
         graph_projection_result = gds.run_cypher(projection_query)
@@ -299,7 +299,7 @@ def process_community_info(community, chain, is_parent=False):
             if line.lower().startswith("title"):
                 title = line.split(":", 1)[-1].strip()
             elif line.lower().startswith("summary"):
-                summary = line.split(":", 1)[-1].strip()     
+                summary = line.split(":", 1)[-1].strip()
         logging.info(f"Community Title : {title}")
         return {"community": community['communityId'], "title":title, "summary": summary}
     except Exception as e:
@@ -314,7 +314,7 @@ def create_community_summaries(gds, model):
         summaries = []
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_community_info, community, community_chain) for community in community_info_list.to_dict(orient="records")]
-   
+
             for future in as_completed(futures):
                 result = future.result()
                 if result:
@@ -330,7 +330,7 @@ def create_community_summaries(gds, model):
         parent_summaries = []
         with ThreadPoolExecutor() as executor:
             futures = [executor.submit(process_community_info, community, parent_community_chain, is_parent=True) for community in parent_community_info.to_dict(orient="records")]
-            
+
             for future in as_completed(futures):
                 result = future.result()
                 if result:
@@ -349,22 +349,22 @@ def create_community_embeddings(gds):
         embedding_model = os.getenv('EMBEDDING_MODEL')
         embeddings, dimension = load_embedding_model(embedding_model)
         logging.info(f"Embedding model '{embedding_model}' loaded successfully.")
-        
+
         logging.info("Fetching community details.")
         rows = gds.run_cypher(GET_COMMUNITY_DETAILS)
         rows = rows[['communityId', 'text']].to_dict(orient='records')
         logging.info(f"Fetched {len(rows)} communities.")
-        
+
         batch_size = 100
         for i in range(0, len(rows), batch_size):
-            batch_rows = rows[i:i+batch_size]            
+            batch_rows = rows[i:i+batch_size]
             for row in batch_rows:
                 try:
                     row['embedding'] = embeddings.embed_query(row['text'])
                 except Exception as e:
                     logging.error(f"Failed to embed text for community ID {row['communityId']}: {e}")
                     row['embedding'] = None
-            
+
             try:
                 logging.info("Writing embeddings to the database.")
                 gds.run_cypher(WRITE_COMMUNITY_EMBEDDINGS, params={'rows': batch_rows})
@@ -380,7 +380,7 @@ def create_community_embeddings(gds):
 def create_vector_index(gds, index_type,embedding_dimension=None):
     drop_query = ""
     query = ""
-    
+
     if index_type == ENTITY_VECTOR_INDEX_NAME:
         drop_query = DROP_ENTITY_VECTOR_INDEX_QUERY
         query = CREATE_ENTITY_VECTOR_INDEX_QUERY.format(
@@ -407,7 +407,7 @@ def create_vector_index(gds, index_type,embedding_dimension=None):
         gds.run_cypher(query)
 
         logging.info(f"Vector index '{index_type}' created successfully.")
-    
+
     except Exception as e:
         logging.error("An error occurred while creating the vector index.", exc_info=True)
         logging.error(f"Error details: {str(e)}")
@@ -416,7 +416,7 @@ def create_vector_index(gds, index_type,embedding_dimension=None):
 def create_fulltext_index(gds, index_type):
     drop_query = ""
     query = ""
-    
+
     if index_type == COMMUNITY_FULLTEXT_INDEX_NAME:
         drop_query = COMMUNITY_FULLTEXT_INDEX_DROP_QUERY
         query = COMMUNITY_INDEX_FULL_TEXT_QUERY

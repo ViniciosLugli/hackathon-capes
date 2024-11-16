@@ -32,17 +32,17 @@ class CreateChunksofDocument:
             for i, document in enumerate(self.pages):
                 page_number = i + 1
                 for chunk in text_splitter.split_documents([document]):
-                    chunks.append(Document(page_content=chunk.page_content, metadata={'page_number':page_number}))    
-        
+                    chunks.append(Document(page_content=chunk.page_content, metadata={'page_number':page_number}))
+
         elif 'length' in self.pages[0].metadata:
-            if len(self.pages) == 1  or (len(self.pages) > 1 and self.pages[1].page_content.strip() == ''): 
+            if len(self.pages) == 1  or (len(self.pages) > 1 and self.pages[1].page_content.strip() == ''):
                 match = re.search(r'(?:v=)([0-9A-Za-z_-]{11})\s*',self.pages[0].metadata['source'])
-                youtube_id=match.group(1)   
+                youtube_id=match.group(1)
                 chunks_without_time_range = text_splitter.split_documents([self.pages[0]])
                 chunks = get_calculated_timestamps(chunks_without_time_range, youtube_id)
 
-            else: 
-                chunks_without_time_range = text_splitter.split_documents(self.pages)   
+            else:
+                chunks_without_time_range = text_splitter.split_documents(self.pages)
                 chunks = get_chunks_with_timestamps(chunks_without_time_range)
         else:
             chunks = text_splitter.split_documents(self.pages)

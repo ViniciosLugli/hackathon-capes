@@ -1,13 +1,13 @@
 import logging
 from src.graph_query import *
-from src.shared.constants import * 
+from src.shared.constants import *
 import re
 
 def process_records(records):
     """
     Processes a record to extract and organize node and relationship data.
     """
-    try:            
+    try:
         nodes = []
         relationships = []
         seen_nodes = set()
@@ -99,7 +99,7 @@ def process_chunkids(driver, chunk_ids, entities):
         return result
     except Exception as e:
         logging.error(f"chunkid_entities module: Error processing chunk ids: {chunk_ids}. Error: {e}")
-        raise  
+        raise
 
 def remove_duplicate_nodes(nodes,property="element_id"):
     unique_nodes = []
@@ -150,7 +150,7 @@ def process_entityids(driver, entity_ids):
         return result
     except Exception as e:
         logging.error(f"chunkid_entities module: Error processing entity ids: {entity_ids}. Error: {e}")
-        raise  
+        raise
 
 def process_communityids(driver, community_ids):
     """Processes community IDs to retrieve community data."""
@@ -166,9 +166,9 @@ def process_communityids(driver, community_ids):
         return result
     except Exception as e:
         logging.error(f"chunkid_entities module: Error processing community ids: {community_ids}. Error: {e}")
-        raise 
+        raise
 
-def get_entities_from_chunkids(uri, username, password, database ,nodedetails,entities,mode):   
+def get_entities_from_chunkids(uri, username, password, database ,nodedetails,entities,mode):
     try:
 
         driver = get_graphDB_driver(uri, username, password,database)
@@ -186,7 +186,7 @@ def get_entities_from_chunkids(uri, username, password, database ,nodedetails,en
             else:
                 logging.info("chunkid_entities module: No community ids are passed")
                 return default_response
-            
+
         elif mode == CHAT_ENTITY_VECTOR_MODE:
 
             if "entitydetails" in nodedetails and nodedetails["entitydetails"]:
@@ -199,8 +199,8 @@ def get_entities_from_chunkids(uri, username, password, database ,nodedetails,en
                 return result
             else:
                 logging.info("chunkid_entities module: No entity ids are passed")
-                return default_response  
-            
+                return default_response
+
         else:
 
             if "chunkdetails" in nodedetails and nodedetails["chunkdetails"]:
@@ -217,5 +217,5 @@ def get_entities_from_chunkids(uri, username, password, database ,nodedetails,en
 
     except Exception as e:
         logging.error(f"chunkid_entities module: An error occurred in get_entities_from_chunkids. Error: {str(e)}")
-        raise Exception(f"chunkid_entities module: An error occurred in get_entities_from_chunkids. Please check the logs for more details.") from e 
+        raise Exception(f"chunkid_entities module: An error occurred in get_entities_from_chunkids. Please check the logs for more details.") from e
 

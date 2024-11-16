@@ -1,6 +1,6 @@
 from langchain_community.graphs import Neo4jGraph
-from src.shared.constants import (BUCKET_UPLOAD, PROJECT_ID, QUERY_TO_GET_CHUNKS, 
-                                  QUERY_TO_DELETE_EXISTING_ENTITIES, 
+from src.shared.constants import (BUCKET_UPLOAD, PROJECT_ID, QUERY_TO_GET_CHUNKS,
+                                  QUERY_TO_DELETE_EXISTING_ENTITIES,
                                   QUERY_TO_GET_LAST_PROCESSED_CHUNK_POSITION,
                                   QUERY_TO_GET_LAST_PROCESSED_CHUNK_WITHOUT_ENTITY,
                                   START_FROM_BEGINNING,
@@ -38,7 +38,7 @@ load_dotenv()
 logging.basicConfig(format='%(asctime)s - %(message)s',level='INFO')
 
 def create_source_node_graph_url_s3(graph, model, source_url, aws_access_key_id, aws_secret_access_key, source_type):
-    
+
     lst_file_name = []
     files_info = get_s3_files_info(source_url,aws_access_key_id=aws_access_key_id,aws_secret_access_key=aws_secret_access_key)
     if len(files_info)==0:
@@ -46,9 +46,9 @@ def create_source_node_graph_url_s3(graph, model, source_url, aws_access_key_id,
     logging.info(f'files info : {files_info}')
     success_count=0
     failed_count=0
-    
+
     for file_info in files_info:
-        file_name=file_info['file_key'] 
+        file_name=file_info['file_key']
         obj_source_node = sourceNode()
         obj_source_node.file_name = file_name.split('/')[-1]
         obj_source_node.file_type = 'pdf'
@@ -75,7 +75,7 @@ def create_source_node_graph_url_gcs(graph, model, gcs_project_id, gcs_bucket_na
     success_count=0
     failed_count=0
     lst_file_name = []
-    
+
     lst_file_metadata= get_gcs_bucket_files_info(gcs_project_id, gcs_bucket_name, gcs_bucket_folder, credentials)
     for file_metadata in lst_file_metadata :
       obj_source_node = sourceNode()
@@ -90,16 +90,16 @@ def create_source_node_graph_url_gcs(graph, model, gcs_project_id, gcs_bucket_na
       obj_source_node.gcsProjectId = file_metadata['gcsProjectId']
       obj_source_node.created_at = datetime.now()
       obj_source_node.access_token = credentials.token
-    
+
       try:
           graphDb_data_Access = graphDBdataAccess(graph)
           graphDb_data_Access.create_source_node(obj_source_node)
           success_count+=1
-          lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Success', 
+          lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Success',
                                 'gcsBucketName': gcs_bucket_name, 'gcsBucketFolder':obj_source_node.gcsBucketFolder, 'gcsProjectId':obj_source_node.gcsProjectId})
       except Exception as e:
         failed_count+=1
-        lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Failed', 
+        lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Failed',
                               'gcsBucketName': gcs_bucket_name, 'gcsBucketFolder':obj_source_node.gcsBucketFolder, 'gcsProjectId':obj_source_node.gcsProjectId})
     return lst_file_name,success_count,failed_count
 
@@ -119,17 +119,17 @@ def create_source_node_graph_web_url(graph, model, source_url, source_type):
     obj_source_node.url = urllib.parse.unquote(source_url)
     obj_source_node.created_at = datetime.now()
     obj_source_node.file_name = pages[0].metadata['title']
-    obj_source_node.language = pages[0].metadata['language'] 
+    obj_source_node.language = pages[0].metadata['language']
     obj_source_node.file_size = sys.getsizeof(pages[0].page_content)
-    
+
     graphDb_data_Access = graphDBdataAccess(graph)
     graphDb_data_Access.create_source_node(obj_source_node)
     lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Success'})
     success_count+=1
     return lst_file_name,success_count,failed_count
-  
+
 def create_source_node_graph_url_youtube(graph, model, source_url, source_type):
-    
+
     youtube_url, language = check_url_source(source_type=source_type, yt_url=source_url)
     success_count=0
     failed_count=0
@@ -144,7 +144,7 @@ def create_source_node_graph_url_youtube(graph, model, source_url, source_type):
     logging.info(f"match value: {match}")
     # file_path = os.path.join(os.path.dirname(__file__),"llm-experiments_credentials.json")
     # logging.info(f'file path {file_path}')
-    
+
     # if os.path.exists(file_path):
     #   logging.info("File path exist")
     #   with open(file_path,'r') as file:
@@ -155,7 +155,7 @@ def create_source_node_graph_url_youtube(graph, model, source_url, source_type):
     #   logging.warning("credntial file path not exist")
 
     video_id = parse_qs(urlparse(youtube_url).query).get('v')
-   
+
     # google_api_client = GoogleApiClient(service_account_path=Path(file_path))
     # youtube_loader_channel = GoogleApiYoutubeLoader(
     # google_api_client=google_api_client,
@@ -171,9 +171,9 @@ def create_source_node_graph_url_youtube(graph, model, source_url, source_type):
     if transcript==None or len(transcript)==0:
       message = f"Youtube transcript is not available for : {obj_source_node.file_name}"
       raise Exception(message)
-    else:  
+    else:
       obj_source_node.file_size = sys.getsizeof(transcript)
-    
+
     graphDb_data_Access = graphDBdataAccess(graph)
     graphDb_data_Access.create_source_node(obj_source_node)
     lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url,'status':'Success'})
@@ -181,7 +181,7 @@ def create_source_node_graph_url_youtube(graph, model, source_url, source_type):
     return lst_file_name,success_count,failed_count
 
 def create_source_node_graph_url_wikipedia(graph, model, wiki_query, source_type):
-  
+
     success_count=0
     failed_count=0
     lst_file_name=[]
@@ -208,7 +208,7 @@ def create_source_node_graph_url_wikipedia(graph, model, wiki_query, source_type
       success_count+=1
       lst_file_name.append({'fileName':obj_source_node.file_name,'fileSize':obj_source_node.file_size,'url':obj_source_node.url, 'language':obj_source_node.language, 'status':'Success'})
     return lst_file_name,success_count,failed_count
-    
+
 async def extract_graph_from_file_local_file(uri, userName, password, database, model, merged_file_path, fileName, allowedNodes, allowedRelationship, retry_condition):
 
   logging.info(f'Process file name :{fileName}')
@@ -224,7 +224,7 @@ async def extract_graph_from_file_local_file(uri, userName, password, database, 
     return await processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship, True, merged_file_path)
   else:
     return await processing_source(uri, userName, password, database, model, fileName, [], allowedNodes, allowedRelationship, True, merged_file_path, retry_condition)
-  
+
 async def extract_graph_from_file_s3(uri, userName, password, database, model, source_url, aws_access_key_id, aws_secret_access_key, file_name, allowedNodes, allowedRelationship, retry_condition):
   if retry_condition is None:
     if(aws_access_key_id==None or aws_secret_access_key==None):
@@ -238,7 +238,7 @@ async def extract_graph_from_file_s3(uri, userName, password, database, model, s
     return await processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship)
   else:
     return await processing_source(uri, userName, password, database, model, file_name, [], allowedNodes, allowedRelationship, retry_condition=retry_condition)
-  
+
 async def extract_graph_from_web_page(uri, userName, password, database, model, source_url, file_name, allowedNodes, allowedRelationship, retry_condition):
   if retry_condition is None:
     file_name, pages = get_documents_from_web_page(source_url)
@@ -248,7 +248,7 @@ async def extract_graph_from_web_page(uri, userName, password, database, model, 
     return await processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship)
   else:
     return await processing_source(uri, userName, password, database, model, file_name, [], allowedNodes, allowedRelationship, retry_condition=retry_condition)
-  
+
 async def extract_graph_from_file_youtube(uri, userName, password, database, model, source_url, file_name, allowedNodes, allowedRelationship, retry_condition):
   if retry_condition is None:
     file_name, pages = get_documents_from_youtube(source_url)
@@ -258,7 +258,7 @@ async def extract_graph_from_file_youtube(uri, userName, password, database, mod
     return await processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship)
   else:
      return await processing_source(uri, userName, password, database, model, file_name, [], allowedNodes, allowedRelationship, retry_condition=retry_condition)
-    
+
 async def extract_graph_from_file_Wikipedia(uri, userName, password, database, model, wiki_query, language, file_name, allowedNodes, allowedRelationship, retry_condition):
   if retry_condition is None:
     file_name, pages = get_documents_from_Wikipedia(wiki_query, language)
@@ -276,11 +276,11 @@ async def extract_graph_from_file_gcs(uri, userName, password, database, model, 
     return await processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship)
   else:
     return await processing_source(uri, userName, password, database, model, file_name, [], allowedNodes, allowedRelationship, retry_condition=retry_condition)
-  
+
 async def processing_source(uri, userName, password, database, model, file_name, pages, allowedNodes, allowedRelationship, is_uploaded_from_local=None, merged_file_path=None, retry_condition=None):
   """
    Extracts a Neo4jGraph from a PDF file based on the model.
-   
+
    Args:
    	 uri: URI of the graph to extract
      db_name : db_name is database name to connect graph db
@@ -288,9 +288,9 @@ async def processing_source(uri, userName, password, database, model, file_name,
    	 password: Password to use for graph creation ( if None will use password from config file )
    	 file: File object containing the PDF file to be used
    	 model: Type of model to use ('Diffbot'or'OpenAI GPT')
-   
-   Returns: 
-   	 Json response to API with fileName, nodeCount, relationshipCount, processingTime, 
+
+   Returns:
+   	 Json response to API with fileName, nodeCount, relationshipCount, processingTime,
      status and model as attributes.
   """
   uri_latency = {}
@@ -322,9 +322,9 @@ async def processing_source(uri, userName, password, database, model, file_name,
   select_chunks_with_retry=0
   node_count = 0
   rel_count = 0
-      
+
   if len(result) > 0:
-    if result[0]['Status'] != 'Processing':      
+    if result[0]['Status'] != 'Processing':
       obj_source_node = sourceNode()
       status = "Processing"
       obj_source_node.file_name = file_name
@@ -338,7 +338,7 @@ async def processing_source(uri, userName, password, database, model, file_name,
       obj_source_node.processed_chunk = 0+select_chunks_with_retry
       logging.info(file_name)
       logging.info(obj_source_node)
-      
+
       start_update_source_node = time.time()
       graphDb_data_Access.update_source_node(obj_source_node)
       end_update_source_node = time.time()
@@ -357,7 +357,7 @@ async def processing_source(uri, userName, password, database, model, file_name,
         if len(chunkId_chunkDoc_list) <= select_chunks_upto:
           select_chunks_upto = len(chunkId_chunkDoc_list)
         selected_chunks = chunkId_chunkDoc_list[i:select_chunks_upto]
-        
+
         result = graphDb_data_Access.get_current_status_document_node(file_name)
         is_cancelled_status = result[0]['is_cancelled']
         logging.info(f"Value of is_cancelled : {result[0]['is_cancelled']}")
@@ -375,7 +375,7 @@ async def processing_source(uri, userName, password, database, model, file_name,
           uri_latency[f'processed_chunk_detail_{i}-{select_chunks_upto}'] = latency_processed_chunk
           end_time = datetime.now()
           processed_time = end_time - start_time
-          
+
           obj_source_node = sourceNode()
           obj_source_node.file_name = file_name
           obj_source_node.updated_at = end_time
@@ -385,11 +385,11 @@ async def processing_source(uri, userName, password, database, model, file_name,
             result = graph.query(QUERY_TO_GET_NODES_AND_RELATIONS_OF_A_DOCUMENT, params={"filename":file_name})
             obj_source_node.node_count = result[0]['nodes']
             obj_source_node.relationship_count = result[0]['rels']
-          else:  
+          else:
             obj_source_node.node_count = node_count
             obj_source_node.relationship_count = rel_count
           graphDb_data_Access.update_source_node(obj_source_node)
-      
+
       result = graphDb_data_Access.get_current_status_document_node(file_name)
       is_cancelled_status = result[0]['is_cancelled']
       if bool(is_cancelled_status) == True:
@@ -409,22 +409,22 @@ async def processing_source(uri, userName, password, database, model, file_name,
 
 
       # merged_file_path have value only when file uploaded from local
-      
+
       if is_uploaded_from_local:
         gcs_file_cache = os.environ.get('GCS_FILE_CACHE')
         if gcs_file_cache == 'True':
           folder_name = create_gcs_bucket_folder_name_hashed(uri, file_name)
           delete_file_from_gcs(BUCKET_UPLOAD,folder_name,file_name)
         else:
-          delete_uploaded_local_file(merged_file_path, file_name)  
+          delete_uploaded_local_file(merged_file_path, file_name)
       processing_source_func = time.time() - processing_source_start_time
-      logging.info(f"Time taken to processing source function completed in {processing_source_func:.2f} seconds for file name {file_name}")  
+      logging.info(f"Time taken to processing source function completed in {processing_source_func:.2f} seconds for file name {file_name}")
       uri_latency["Processed_source"] = f'{processing_source_func:.2f}'
       if node_count == 0:
         uri_latency["Per_entity_latency"] = 'N/A'
-      else:  
+      else:
         uri_latency["Per_entity_latency"] = f'{int(processing_source_func)/node_count}/s'
-      response = {}  
+      response = {}
       response["fileName"] = file_name
       response["nodeCount"] = node_count
       response["relationshipCount"] = rel_count
@@ -432,7 +432,7 @@ async def processing_source(uri, userName, password, database, model, file_name,
       response["status"] = job_status
       response["model"] = model
       response["success_count"] = 1
-      
+
       return uri_latency, response
     else:
       logging.info('File does not process because it\'s already in Processing status')
@@ -448,15 +448,15 @@ async def processing_chunks(chunkId_chunkDoc_list,graph,uri, userName, password,
       graph = create_graph_database_connection(uri, userName, password, database)
   else:
     graph = create_graph_database_connection(uri, userName, password, database)
-  
+
   start_update_embedding = time.time()
   update_embedding_create_vector_index( graph, chunkId_chunkDoc_list, file_name)
   end_update_embedding = time.time()
   elapsed_update_embedding = end_update_embedding - start_update_embedding
   logging.info(f'Time taken to update embedding in chunk node: {elapsed_update_embedding:.2f} seconds')
-  latency_processing_chunk = {"update_embedding" : f'{elapsed_update_embedding:.2f}'} 
+  latency_processing_chunk = {"update_embedding" : f'{elapsed_update_embedding:.2f}'}
   logging.info("Get graph document list from models")
-  
+
   start_entity_extraction = time.time()
   graph_documents =  await get_graph_from_llm(model, chunkId_chunkDoc_list, allowedNodes, allowedRelationship)
   end_entity_extraction = time.time()
@@ -464,7 +464,7 @@ async def processing_chunks(chunkId_chunkDoc_list,graph,uri, userName, password,
   logging.info(f'Time taken to extract enitities from LLM Graph Builder: {elapsed_entity_extraction:.2f} seconds')
   latency_processing_chunk["entity_extraction"] = f'{elapsed_entity_extraction:.2f}'
   cleaned_graph_documents = handle_backticks_nodes_relationship_id_type(graph_documents)
-  
+
   start_save_graphDocuments = time.time()
   save_graphDocuments_in_neo4j(graph, cleaned_graph_documents)
   end_save_graphDocuments = time.time()
@@ -480,7 +480,7 @@ async def processing_chunks(chunkId_chunkDoc_list,graph,uri, userName, password,
   elapsed_relationship = end_relationship - start_relationship
   logging.info(f'Time taken to create relationship between chunk and entities: {elapsed_relationship:.2f} seconds')
   latency_processing_chunk["relationship_between_chunk_entity"] = f'{elapsed_relationship:.2f}'
-  
+
   distinct_nodes = set()
   relations = []
   for graph_document in graph_documents:
@@ -516,35 +516,35 @@ def get_chunkId_chunkDoc_list(graph, file_name, pages, retry_condition):
     chunks = create_chunks_obj.split_file_into_chunks()
     chunkId_chunkDoc_list = create_relation_between_chunks(graph,file_name,chunks)
     return len(chunks), chunkId_chunkDoc_list
-  
-  else:  
+
+  else:
     chunkId_chunkDoc_list=[]
     chunks =  graph.query(QUERY_TO_GET_CHUNKS, params={"filename":file_name})
-    
+
     if chunks[0]['text'] is None or chunks[0]['text']=="" :
-      raise Exception(f"Chunks are not created for {file_name}. Please re-upload file and try.")    
+      raise Exception(f"Chunks are not created for {file_name}. Please re-upload file and try.")
     else:
       for chunk in chunks:
         chunk_doc = Document(page_content=chunk['text'], metadata={'id':chunk['id'], 'position':chunk['position']})
         chunkId_chunkDoc_list.append({'chunk_id': chunk['id'], 'chunk_doc': chunk_doc})
-      
+
       if retry_condition ==  START_FROM_LAST_PROCESSED_POSITION:
         logging.info(f"Retry : start_from_last_processed_position")
         starting_chunk = graph.query(QUERY_TO_GET_LAST_PROCESSED_CHUNK_POSITION, params={"filename":file_name})
         if starting_chunk[0]["position"] < len(chunkId_chunkDoc_list):
           return len(chunks), chunkId_chunkDoc_list[starting_chunk[0]["position"] - 1:]
-        
+
         elif starting_chunk[0]["position"] == len(chunkId_chunkDoc_list):
           starting_chunk = graph.query(QUERY_TO_GET_LAST_PROCESSED_CHUNK_WITHOUT_ENTITY, params={"filename":file_name})
           return len(chunks), chunkId_chunkDoc_list[starting_chunk[0]["position"] - 1:]
-        
+
         else:
-          raise Exception(f"All chunks of {file_name} are alreday processed. If you want to re-process, Please start from begnning")    
-      
+          raise Exception(f"All chunks of {file_name} are alreday processed. If you want to re-process, Please start from begnning")
+
       else:
-        logging.info(f"Retry : start_from_beginning with chunks {len(chunkId_chunkDoc_list)}")    
+        logging.info(f"Retry : start_from_beginning with chunks {len(chunkId_chunkDoc_list)}")
         return len(chunks), chunkId_chunkDoc_list
-  
+
 def get_source_list_from_graph(uri,userName,password,db_name=None):
   """
   Args:
@@ -556,7 +556,7 @@ def get_source_list_from_graph(uri,userName,password,db_name=None):
     model: Type of model to use ('Diffbot'or'OpenAI GPT')
   Returns:
    Returns a list of sources that are in the database by querying the graph and
-   sorting the list by the last updated date. 
+   sorting the list by the last updated date.
  """
   logging.info("Get existing files list from graph")
   graph = Neo4jGraph(url=uri, database=db_name, username=userName, password=password)
@@ -573,7 +573,7 @@ def update_graph(graph):
   graph_DB_dataAccess = graphDBdataAccess(graph)
   graph_DB_dataAccess.update_KNN_graph()
 
-  
+
 def connection_check_and_get_vector_dimensions(graph,database):
   """
   Args:
@@ -601,27 +601,27 @@ def merge_chunks_local(file_name, total_chunks, chunk_dir, merged_dir):
               shutil.copyfileobj(chunk_file, write_stream)
           os.unlink(chunk_file_path)  # Delete the individual chunk file after merging
   logging.info("Chunks merged successfully and return file size")
-  
+
   file_size = os.path.getsize(merged_file_path)
   return file_size
-  
+
 
 
 def upload_file(graph, model, chunk, chunk_number:int, total_chunks:int, originalname, uri, chunk_dir, merged_dir):
-  
+
   gcs_file_cache = os.environ.get('GCS_FILE_CACHE')
   logging.info(f'gcs file cache: {gcs_file_cache}')
-  
+
   if gcs_file_cache == 'True':
     folder_name = create_gcs_bucket_folder_name_hashed(uri,originalname)
     upload_file_to_gcs(chunk, chunk_number, originalname, BUCKET_UPLOAD, folder_name)
   else:
     if not os.path.exists(chunk_dir):
       os.mkdir(chunk_dir)
-    
+
     chunk_file_path = os.path.join(chunk_dir, f"{originalname}_part_{chunk_number}")
     logging.info(f'Chunk File Path: {chunk_file_path}')
-    
+
     with open(chunk_file_path, "wb") as chunk_file:
       chunk_file.write(chunk.file.read())
 
@@ -631,7 +631,7 @@ def upload_file(graph, model, chunk, chunk_number:int, total_chunks:int, origina
         file_size = merge_file_gcs(BUCKET_UPLOAD, originalname, folder_name, int(total_chunks))
       else:
         file_size = merge_chunks_local(originalname, int(total_chunks), chunk_dir, merged_dir)
-      
+
       logging.info("File merged successfully")
       file_extension = originalname.split('.')[-1]
       obj_source_node = sourceNode()
@@ -642,20 +642,20 @@ def upload_file(graph, model, chunk, chunk_number:int, total_chunks:int, origina
       obj_source_node.model = model
       obj_source_node.created_at = datetime.now()
       graphDb_data_Access = graphDBdataAccess(graph)
-        
+
       graphDb_data_Access.create_source_node(obj_source_node)
       return {'file_size': file_size, 'file_name': originalname, 'file_extension':file_extension, 'message':f"Chunk {chunk_number}/{total_chunks} saved"}
   return f"Chunk {chunk_number}/{total_chunks} saved"
 
 def get_labels_and_relationtypes(graph):
   query = """
-          RETURN collect { 
-          CALL db.labels() yield label 
-          WHERE NOT label  IN ['Chunk','_Bloom_Perspective_', '__Community__', '__Entity__'] 
-          return label order by label limit 100 } as labels, 
-          collect { 
-          CALL db.relationshipTypes() yield relationshipType  as type 
-          WHERE NOT type  IN ['PART_OF', 'NEXT_CHUNK', 'HAS_ENTITY', '_Bloom_Perspective_','FIRST_CHUNK'] 
+          RETURN collect {
+          CALL db.labels() yield label
+          WHERE NOT label  IN ['Chunk','_Bloom_Perspective_', '__Community__', '__Entity__']
+          return label order by label limit 100 } as labels,
+          collect {
+          CALL db.relationshipTypes() yield relationshipType  as type
+          WHERE NOT type  IN ['PART_OF', 'NEXT_CHUNK', 'HAS_ENTITY', '_Bloom_Perspective_','FIRST_CHUNK']
           return type order by type LIMIT 100 } as relationshipTypes
           """
   graphDb_data_Access = graphDBdataAccess(graph)
@@ -665,11 +665,11 @@ def get_labels_and_relationtypes(graph):
   return result
 
 def manually_cancelled_job(graph, filenames, source_types, merged_dir, uri):
-  
+
   filename_list= list(map(str.strip, json.loads(filenames)))
   source_types_list= list(map(str.strip, json.loads(source_types)))
   gcs_file_cache = os.environ.get('GCS_FILE_CACHE')
-  
+
   for (file_name,source_type) in zip(filename_list, source_types_list):
       obj_source_node = sourceNode()
       obj_source_node.file_name = file_name

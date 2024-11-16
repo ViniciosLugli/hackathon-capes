@@ -16,7 +16,7 @@ from langchain_aws import ChatBedrock
 from langchain_community.chat_models import ChatOllama
 import boto3
 import google.auth
-from src.shared.constants import MODEL_VERSIONS, PROMPT_TO_ALL_LLMs
+from src.shared.constants import MODEL_VERSIONS
 
 
 def get_llm(model: str):
@@ -24,7 +24,7 @@ def get_llm(model: str):
     env_key = "LLM_MODEL_CONFIG_" + model
     env_value = os.environ.get(env_key)
     logging.info("Model: {}".format(env_key))
-    
+
     if "gemini" in model:
         model_name = env_value
         credentials, project_id = google.auth.default()
@@ -102,8 +102,8 @@ def get_llm(model: str):
             diffbot_api_key=api_key,
             extract_types=["entities", "facts"],
         )
-    
-    else: 
+
+    else:
         model_name, api_endpoint, api_key = env_value.split(",")
         llm = ChatOpenAI(
             api_key=api_key,
@@ -111,7 +111,7 @@ def get_llm(model: str):
             model=model_name,
             temperature=0,
         )
-            
+
     logging.info(f"Model created - Model Version: {model}")
     return llm, model_name
 
@@ -180,7 +180,7 @@ async def get_graph_document_list(
     #     for i, future in enumerate(concurrent.futures.as_completed(futures)):
     #         graph_document = future.result()
     #         graph_document_list.append(graph_document[0])
-    
+
     if isinstance(llm,DiffbotGraphTransformer):
         graph_document_list = llm_transformer.convert_to_graph_documents(combined_chunk_document_list)
     else:
@@ -189,19 +189,19 @@ async def get_graph_document_list(
 
 
 async def get_graph_from_llm(model, chunkId_chunkDoc_list, allowedNodes, allowedRelationship):
-    
+
     llm, model_name = get_llm(model)
     combined_chunk_document_list = get_combined_chunks(chunkId_chunkDoc_list)
-    
+
     if  allowedNodes is None or allowedNodes=="":
         allowedNodes =[]
     else:
-        allowedNodes = allowedNodes.split(',')    
-    if  allowedRelationship is None or allowedRelationship=="":   
+        allowedNodes = allowedNodes.split(',')
+    if  allowedRelationship is None or allowedRelationship=="":
         allowedRelationship=[]
     else:
         allowedRelationship = allowedRelationship.split(',')
-        
+
     graph_document_list = await get_graph_document_list(
         llm, combined_chunk_document_list, allowedNodes, allowedRelationship
     )

@@ -32,25 +32,25 @@ def check_url_source(source_type, yt_url:str=None, wiki_query:str=None):
           return youtube_url,language
         else:
           raise Exception('Incoming URL is not youtube URL')
-      
+
       elif  source_type == 'Wikipedia':
         wiki_query_id=''
         #pattern = r"https?:\/\/([a-zA-Z0-9\.\,\_\-\/]+)\.wikipedia\.([a-zA-Z]{2,3})\/wiki\/([a-zA-Z0-9\.\,\_\-\/]+)"
         wikipedia_url_regex = r'https?:\/\/(www\.)?([a-zA-Z]{2,3})\.wikipedia\.org\/wiki\/(.*)'
         wiki_id_pattern = r'^[a-zA-Z0-9 _\-\.\,\:\(\)\[\]\{\}\/]*$'
-        
+
         match = re.search(wikipedia_url_regex, wiki_query.strip())
         if match:
                 language = match.group(2)
                 wiki_query_id = match.group(3)
-          # else : 
+          # else :
           #       languages.append("en")
           #       wiki_query_ids.append(wiki_url.strip())
         else:
             raise Exception(f'Not a valid wikipedia url: {wiki_query} ')
 
-        logging.info(f"wikipedia query id = {wiki_query_id}")     
-        return wiki_query_id, language     
+        logging.info(f"wikipedia query id = {wiki_query_id}")
+        return wiki_query_id, language
     except Exception as e:
       logging.error(f"Error in recognize URL: {e}")
       raise Exception(e)
@@ -59,18 +59,18 @@ def check_url_source(source_type, yt_url:str=None, wiki_query:str=None):
 def get_chunk_and_graphDocument(graph_document_list, chunkId_chunkDoc_list):
   logging.info("creating list of chunks and graph documents in get_chunk_and_graphDocument func")
   lst_chunk_chunkId_document=[]
-  for graph_document in graph_document_list:            
+  for graph_document in graph_document_list:
           for chunk_id in graph_document.source.metadata['combined_chunk_ids'] :
             lst_chunk_chunkId_document.append({'graph_doc':graph_document,'chunk_id':chunk_id})
-                  
-  return lst_chunk_chunkId_document  
-                 
+
+  return lst_chunk_chunkId_document
+
 def create_graph_database_connection(uri, userName, password, database):
   enable_user_agent = os.environ.get("ENABLE_USER_AGENT", "False").lower() in ("true", "1", "yes")
   if enable_user_agent:
-    graph = Neo4jGraph(url=uri, database=database, username=userName, password=password, refresh_schema=False, sanitize=True,driver_config={'user_agent':os.environ.get('NEO4J_USER_AGENT')})  
+    graph = Neo4jGraph(url=uri, database=database, username=userName, password=password, refresh_schema=False, sanitize=True,driver_config={'user_agent':os.environ.get('NEO4J_USER_AGENT')})
   else:
-    graph = Neo4jGraph(url=uri, database=database, username=userName, password=password, refresh_schema=False, sanitize=True)    
+    graph = Neo4jGraph(url=uri, database=database, username=userName, password=password, refresh_schema=False, sanitize=True)
   return graph
 
 
@@ -79,7 +79,7 @@ def load_embedding_model(embedding_model_name: str):
         embeddings = OpenAIEmbeddings()
         dimension = 1536
         logging.info(f"Embedding: Using OpenAI Embeddings , Dimension:{dimension}")
-    elif embedding_model_name == "vertexai":        
+    elif embedding_model_name == "vertexai":
         embeddings = VertexAIEmbeddings(
             model="textembedding-gecko@003"
         )
@@ -96,7 +96,7 @@ def load_embedding_model(embedding_model_name: str):
 def save_graphDocuments_in_neo4j(graph:Neo4jGraph, graph_document_list:List[GraphDocument]):
   graph.add_graph_documents(graph_document_list, baseEntityLabel=True,include_source=True)
   # graph.add_graph_documents(graph_document_list)
-  
+
 def handle_backticks_nodes_relationship_id_type(graph_document_list:List[GraphDocument]):
   for graph_document in graph_document_list:
     # Clean node id and types
@@ -122,12 +122,12 @@ def delete_uploaded_local_file(merged_file_path, file_name):
   if file_path.exists():
     file_path.unlink()
     logging.info(f'file {file_name} deleted successfully')
-   
+
 def close_db_connection(graph, api_name):
   if not graph._driver._closed:
       logging.info(f"closing connection for {api_name} api")
-      # graph._driver.close()   
-  
+      # graph._driver.close()
+
 def create_gcs_bucket_folder_name_hashed(uri, file_name):
   folder_name = uri + file_name
   folder_name_sha1 = hashlib.sha1(folder_name.encode())
