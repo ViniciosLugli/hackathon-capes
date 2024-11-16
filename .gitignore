@@ -1,0 +1,7 @@
+# Environment
+.env
+
+# Temporary/Local
+auradb-data/
+postgresdb-data/
+example-assets/
