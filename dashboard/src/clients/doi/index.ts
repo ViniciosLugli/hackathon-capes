@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 
 export class DOIClient {
 	private baseURL: string
@@ -42,7 +42,6 @@ export class DOIClient {
 		}
 	}
 }
-
 interface Cohorts {
 	[key: string]: number
 }
@@ -56,10 +55,10 @@ interface ContextCounts {
 }
 
 interface Context {
-	all: ContextCounts
-	journal: ContextCounts
-	similar_age_3m: ContextCounts
-	similar_age_journal_3m: ContextCounts
+	all?: ContextCounts
+	journal?: ContextCounts
+	similar_age_3m?: ContextCounts
+	similar_age_journal_3m?: ContextCounts
 }
 
 interface PublisherSubject {
@@ -68,9 +67,10 @@ interface PublisherSubject {
 }
 
 interface Readers {
-	citeulike: string
-	mendeley: string
-	connotea: string
+	mendeley?: number
+	downloads?: number
+	citeulike?: number
+	connotea?: number
 }
 
 interface Images {
@@ -79,58 +79,111 @@ interface Images {
 	large: string
 }
 
+interface History {
+	'1d'?: number
+	'2d'?: number
+	'3d'?: number
+	'4d'?: number
+	'5d'?: number
+	'6d'?: number
+	'1w'?: number
+	'1m'?: number
+	'3m'?: number
+	'6m'?: number
+	'1y'?: number
+	at?: number
+}
+
 interface AltmetricResponse {
-	title: string
-	doi: string
+	title?: string
+	doi?: string
 	pmid?: string
-	isbns: string[]
-	altmetric_jid: string
-	issns: string[]
-	journal: string
-	cohorts: Cohorts
-	context: Context
-	authors: string[]
-	type: string
-	handles: string[]
-	pubdate: number
-	epubdate: number
-	dimensions_publication_id: string
-	altmetric_id: number
-	schema: string
-	is_oa: boolean
-	publisher_subjects: PublisherSubject[]
-	cited_by_posts_count: number
-	cited_by_tweeters_count: number
-	cited_by_accounts_count: number
-	last_updated: number
-	score: number
-	history: { [key: string]: number }
-	url: string
-	added_on: number
-	published_on: number
-	scopus_subjects: string[]
-	readers: Readers
-	readers_count: number
-	images: Images
-	details_url: string
+	pmc?: string
+	nlmid?: string
+	uri?: string
+	url?: string
+	isbns?: string[]
+	altmetric_jid?: string
+	issns?: string[]
+	journal?: string
+	cohorts?: Cohorts
+	abstract?: string
+	abstract_source?: string
+	authors?: string[]
+	type?: 'dataset' | 'book' | 'article' | 'news' | 'chapter' | 'clinical_trial_study_record'
+	handles?: string[]
+	pubdate?: number
+	epubdate?: number
+	published_on?: number
+	dimensions_publication_id?: string
+	altmetric_id?: number
+	schema?: string
+	is_oa?: boolean
+	context?: Context
+	cited_by_fbwalls_count?: number
+	cited_by_feeds_count?: number
+	cited_by_gplus_count?: number
+	cited_by_msm_count?: number
+	cited_by_rdts_count?: number
+	cited_by_qna_count?: number
+	cited_by_tweeters_count?: number
+	cited_by_wikipedia_count?: number
+	cited_by_policies_count?: number
+	cited_by_patents_count?: number
+	cited_by_videos_count?: number
+	cited_by_accounts_count?: number
+	cited_by_posts_count?: number
+	last_updated?: number
+	score?: number
+	history?: History
+	added_on?: number
+	scopus_subjects?: string[]
+	subjects?: string[]
+	publisher_subjects?: PublisherSubject[]
+	readers?: Readers
+	readers_count?: number
+	images?: Images
+	details_url?: string
+	authors_or_editors?: string[]
+	attribution?: string
 }
 
 export class AltmetricClient {
 	private baseURL: string
 
 	constructor() {
-		this.baseURL = 'https://api.altmetric.com/v1/doi/'
+		this.baseURL = 'https://api.altmetric.com/v1'
 	}
 
-	async getInfoByDOI(doi: string): Promise<AltmetricResponse | null> {
+	async getInfoByIdentifier(identifierType: string, id: string): Promise<AltmetricResponse | null> {
 		try {
-			const response = await axios.get<AltmetricResponse>(`${this.baseURL}${encodeURIComponent(doi)}`)
+			const url = `${this.baseURL}/${identifierType}/${id}`
+			const response = await axios.get<AltmetricResponse>(url)
+
 			return response.data
 		} catch (error) {
-			console.error('Error fetching Altmetric data:', error)
+			const axiosError = error as AxiosError
+			if (axiosError.response) {
+				switch (axiosError.response.status) {
+					case 403:
+						console.error('Error 403: Forbidden - You are not authorized for this call.')
+						break
+					case 404:
+						console.error('Error 404: Not Found - No details for the requested research output.')
+						break
+					case 429:
+						console.error('Error 429: Too Many Requests - You are being rate limited.')
+						break
+					case 502:
+						console.error('Error 502: Bad Gateway - The API version is down for maintenance.')
+						break
+					default:
+						console.error(`Error ${axiosError.response.status}: ${axiosError.response.statusText}`)
+				}
+			} else {
+				console.error('Error fetching Altmetric data:', axiosError.message)
+			}
 			return null
 		}
 	}
 }
-
-export default AltmetricClient

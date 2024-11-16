@@ -10,7 +10,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 	}
 
 	const doiClient = new AltmetricClient()
-	const infos = await doiClient.getInfoByDOI(doi)
+	const infos = await doiClient.getInfoByIdentifier('doi', doi)
 
 	if (infos) {
 		return NextResponse.json(infos)
