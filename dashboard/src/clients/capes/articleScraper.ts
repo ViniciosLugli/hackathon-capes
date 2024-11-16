@@ -31,6 +31,7 @@ export interface Citation {
 	doi?: string
 	url?: string
 }
+
 export async function scrapeArticleById(articleId: string): Promise<Article> {
 	try {
 		const url = `https://www.periodicos.capes.gov.br/index.php/acervo/buscador.html?task=detalhes&source=&id=${articleId}`
