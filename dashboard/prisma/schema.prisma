@@ -7,52 +7,31 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-model User {
-    id                 String       @id @default(cuid())
-    email              String       @unique
-    name               String
-    password           String
-    role               Role         @default(RESEARCHER)
-    orcidId            String?      @unique
-    institution        Institution? @relation(fields: [institutionId], references: [id])
-    institutionId      Int?
-    articles           Article[]    @relation("AuthoredArticles")
-    coauthoredArticles Article[]    @relation("CoauthoredArticles")
-    reviews            Review[]
-    createdAt          DateTime     @default(now())
-    updatedAt          DateTime     @updatedAt
-}
-
 model Article {
-    id              Int       @id @default(autoincrement())
+    id              String    @id @default(cuid())
     doi             String?   @unique
     title           String
     abstract        String    @db.Text
-    content         String    @db.Text
     language        String
     volume          String?
     issue           String?
     pageStart       Int?
     pageEnd         Int?
     publicationDate DateTime?
+    authors         String[]
+    institutions    String[]
 
     // Publication details
-    journal     Journal?   @relation(fields: [journalId], references: [id])
-    journalId   Int?
-    publisher   Publisher? @relation(fields: [publisherId], references: [id])
-    publisherId Int?
-
-    // Authors
-    primaryAuthor   User   @relation("AuthoredArticles", fields: [primaryAuthorId], references: [id])
-    primaryAuthorId String
-    coauthors       User[] @relation("CoauthoredArticles")
+    journalName   String?
+    publisherName String?
 
     // Classification
-    topics   Topic[]
-    keywords Keyword[]
+    topics    Topic[]
+    keywords  Keyword[]
+    fieldArea FieldArea[]
 
     // Status and access
-    status       ArticleStatus @default(DRAFT)
+    status       ArticleStatus @default(PUBLISHED)
     isOpenAccess Boolean       @default(false)
     peerReviewed Boolean       @default(false)
 
@@ -61,62 +40,37 @@ model Article {
     citedBy   Citation[] @relation("CitedArticles")
     metrics   Metrics?
 
-    // Reviews
-    reviews Review[]
+    // Quality metrics
+    qualityScore     Float? @default(0)
+    readabilityScore Float? @default(0)
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
 
-model Institution {
-    id        Int             @id @default(autoincrement())
-    name      String
-    country   String
-    city      String?
-    type      InstitutionType @default(UNIVERSITY)
-    website   String?
-    users     User[]
-    createdAt DateTime        @default(now())
-    updatedAt DateTime        @updatedAt
-}
-
-model Journal {
-    id          Int       @id @default(autoincrement())
-    name        String
-    issn        String?   @unique
-    eissn       String?   @unique
-    publisher   Publisher @relation(fields: [publisherId], references: [id])
-    publisherId Int
-    articles    Article[]
-    createdAt   DateTime  @default(now())
-    updatedAt   DateTime  @updatedAt
-}
-
-model Publisher {
-    id        Int       @id @default(autoincrement())
-    name      String
-    country   String?
-    website   String?
-    journals  Journal[]
-    articles  Article[]
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-}
-
 model Topic {
-    id          Int       @id @default(autoincrement())
+    id          String    @id @default(cuid())
     name        String    @unique
     description String?   @db.Text
     articles    Article[]
     parentTopic Topic?    @relation("TopicHierarchy", fields: [parentId], references: [id])
-    parentId    Int?
+    parentId    String?
     subtopics   Topic[]   @relation("TopicHierarchy")
     createdAt   DateTime  @default(now())
     updatedAt   DateTime  @updatedAt
 }
 
+model FieldArea {
+    id          String    @id @default(cuid())
+    name        String    @unique
+    description String?   @db.Text
+    articles    Article[]
+    createdAt   DateTime  @default(now())
+    updatedAt   DateTime  @updatedAt
+}
+
 model Keyword {
-    id        Int       @id @default(autoincrement())
+    id        String    @id @default(cuid())
     name      String    @unique
     articles  Article[]
     createdAt DateTime  @default(now())
@@ -124,11 +78,11 @@ model Keyword {
 }
 
 model Citation {
-    id              Int      @id @default(autoincrement())
+    id              String   @id @default(cuid())
     citingArticle   Article  @relation("CitingArticles", fields: [citingArticleId], references: [id])
-    citingArticleId Int
+    citingArticleId String
     citedArticle    Article  @relation("CitedArticles", fields: [citedArticleId], references: [id])
-    citedArticleId  Int
+    citedArticleId  String
     citationText    String   @db.Text
     createdAt       DateTime @default(now())
     updatedAt       DateTime @updatedAt
@@ -136,22 +90,10 @@ model Citation {
     @@unique([citingArticleId, citedArticleId])
 }
 
-model Review {
-    id         Int            @id @default(autoincrement())
-    article    Article        @relation(fields: [articleId], references: [id])
-    articleId  Int
-    reviewer   User           @relation(fields: [reviewerId], references: [id])
-    reviewerId String
-    content    String         @db.Text
-    decision   ReviewDecision
-    createdAt  DateTime       @default(now())
-    updatedAt  DateTime       @updatedAt
-}
-
 model Metrics {
-    id             Int      @id @default(autoincrement())
+    id             String   @id @default(cuid())
     article        Article  @relation(fields: [articleId], references: [id])
-    articleId      Int      @unique
+    articleId      String   @unique
     citations      Int      @default(0)
     views          Int      @default(0)
     downloads      Int      @default(0)
@@ -160,35 +102,8 @@ model Metrics {
     updatedAt      DateTime @updatedAt
 }
 
-enum Role {
-    ADMIN
-    RESEARCHER
-    STUDENT
-    REVIEWER
-    EDITOR
-}
-
 enum ArticleStatus {
     DRAFT
-    UNDER_REVIEW
     PUBLISHED
-    REJECTED
     RETRACTED
-    IN_PRESS
-}
-
-enum ReviewDecision {
-    ACCEPT
-    MINOR_REVISION
-    MAJOR_REVISION
-    REJECT
-}
-
-enum InstitutionType {
-    UNIVERSITY
-    RESEARCH_INSTITUTE
-    GOVERNMENT
-    HOSPITAL
-    CORPORATE
-    OTHER
 }
