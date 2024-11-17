@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { scrapeArticleById, Article } from '@/clients/capes/articleScraper'
+import { LLMGraphBuilderClient } from '@/clients/llm-graph-builder/apiClient'
+import { createPDFFileFromArticle } from '@/utils/fileParser'
 
 const prisma = new PrismaClient()
 
@@ -9,9 +11,9 @@ export async function GET(request: NextRequest) {
 		const { searchParams } = new URL(request.url)
 
 		const title = searchParams.get('title') || undefined
-		const authors = searchParams.getAll('authors')
+		const authors = searchParams.getAll('authors').filter(Boolean)
 		const publicationYear = searchParams.get('publicationYear')
-		const topics = searchParams.getAll('topics')
+		const topics = searchParams.getAll('topics').filter(Boolean)
 		const language = searchParams.get('language') || undefined
 		const isOpenAccess = searchParams.get('isOpenAccess')
 		const peerReviewed = searchParams.get('peerReviewed')
@@ -19,8 +21,8 @@ export async function GET(request: NextRequest) {
 		const status = searchParams.get('status') || undefined
 		const journalName = searchParams.get('journalName') || undefined
 
-		const page = parseInt(searchParams.get('page') || '1')
-		const pageSize = parseInt(searchParams.get('pageSize') || '10')
+		const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
+		const pageSize = Math.max(1, Math.min(100, parseInt(searchParams.get('pageSize') || '10')))
 
 		const sortBy = searchParams.get('sortBy') || 'createdAt'
 		const sortOrder = searchParams.get('sortOrder') === 'asc' ? 'asc' : 'desc'
@@ -40,9 +42,9 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		if (publicationYear) {
+		if (publicationYear && publicationYear !== '0') {
 			const year = parseInt(publicationYear)
-			if (!isNaN(year)) {
+			if (!isNaN(year) && year > 0) {
 				whereClause.publicationYear = year
 			}
 		}
@@ -65,11 +67,11 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		if (isOpenAccess !== null) {
+		if (isOpenAccess !== null && isOpenAccess !== undefined) {
 			whereClause.isOpenAccess = isOpenAccess === 'true'
 		}
 
-		if (peerReviewed !== null) {
+		if (peerReviewed !== null && peerReviewed !== undefined) {
 			whereClause.peerReviewed = peerReviewed === 'true'
 		}
 
@@ -109,10 +111,18 @@ export async function GET(request: NextRequest) {
 			data: articles,
 			page,
 			pageSize,
+			total: articles.length,
+			message: articles.length > 0 ? undefined : 'No articles found',
 		})
-	} catch (error) {
+	} catch (error: any) {
 		console.error('Error in GET API route:', error)
-		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+		return NextResponse.json(
+			{
+				error: 'Internal server error',
+				details: error instanceof Error ? error.message : String(error),
+			},
+			{ status: 500 }
+		)
 	}
 }
 
@@ -123,10 +133,18 @@ export async function POST(request: NextRequest) {
 			return NextResponse.json({ error: 'Invalid or missing request body' }, { status: 400 })
 		}
 
-		const { siteId } = body
+		const { siteId } = await body
 
 		if (!siteId) {
 			return NextResponse.json({ error: 'siteId is required' }, { status: 400 })
+		}
+
+		const article = await prisma.article.findUnique({
+			where: { id: siteId },
+		})
+
+		if (article) {
+			return NextResponse.json({ error: 'Article with the given siteId already exists' }, { status: 400 })
 		}
 
 		let articleData
@@ -135,6 +153,20 @@ export async function POST(request: NextRequest) {
 		} catch (error: any) {
 			console.error(`Error scraping article with siteId: ${siteId}`, error.message)
 			return NextResponse.json({ error: 'Failed to scrape article. Please verify the siteId.' }, { status: 500 })
+		}
+
+		let buffer, mimeType, blob, fileName
+
+		try {
+			const pdfFile = await createPDFFileFromArticle(articleData)
+			buffer = pdfFile.buffer
+			mimeType = pdfFile.mimeType
+			blob = pdfFile.blob
+			fileName = pdfFile.fileName
+		} catch (error: any) {
+			console.error(`Error creating PDF file for article: ${articleData.id}`)
+			console.error(error)
+			return NextResponse.json({ error: 'Failed to create PDF file for article' }, { status: 500 })
 		}
 
 		if (!articleData || typeof articleData !== 'object') {
@@ -148,6 +180,44 @@ export async function POST(request: NextRequest) {
 			console.error(`Error saving article data: ${JSON.stringify(articleData)}`, error.message)
 			return NextResponse.json({ error: 'Failed to save article to database' }, { status: 500 })
 		}
+
+		const LLM_GRAPH_BUILDER_API_URL = process.env.LLM_GRAPH_BUILDER_API_URL
+		if (!LLM_GRAPH_BUILDER_API_URL) {
+			throw new Error('LLM Graph Builder API URL is not configured')
+		}
+
+		const llmGraphBuilderClient = new LLMGraphBuilderClient(LLM_GRAPH_BUILDER_API_URL)
+
+		const { NEO4J_URI, NEO4J_USERNAME, NEO4J_PASSWORD, NEO4J_DATABASE, DEFAULT_LLM_GRAPH_BUILDER_MODEL } = process.env
+		if (!NEO4J_URI || !NEO4J_USERNAME || !NEO4J_PASSWORD || !NEO4J_DATABASE || !DEFAULT_LLM_GRAPH_BUILDER_MODEL) {
+			throw new Error('Neo4j credentials are not properly configured')
+		}
+		const uploadResponse = await llmGraphBuilderClient.uploadFile({
+			file: new File([buffer], fileName, { type: mimeType }),
+			chunkNumber: 1,
+			totalChunks: 1,
+			originalname: fileName,
+			model: DEFAULT_LLM_GRAPH_BUILDER_MODEL,
+			uri: NEO4J_URI,
+			userName: NEO4J_USERNAME,
+			password: NEO4J_PASSWORD,
+			database: NEO4J_DATABASE,
+		})
+
+		if (uploadResponse.status !== 'Success') {
+			console.error('Error uploading file to LLM Graph Builder:', uploadResponse.data)
+			return NextResponse.json({ error: 'Failed to upload file to LLM Graph Builder' }, { status: 500 })
+		}
+
+		llmGraphBuilderClient.extract({
+			uri: NEO4J_URI,
+			userName: NEO4J_USERNAME,
+			password: NEO4J_PASSWORD,
+			database: NEO4J_DATABASE,
+			model: DEFAULT_LLM_GRAPH_BUILDER_MODEL,
+			file_name: fileName,
+			source_type: 'local file',
+		})
 
 		return NextResponse.json({ message: 'Article saved successfully', article: savedArticle }, { status: 200 })
 	} catch (error) {

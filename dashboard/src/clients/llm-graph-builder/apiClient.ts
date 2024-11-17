@@ -1,6 +1,68 @@
 import { fetchAPI } from './utils'
 import { ConnectParams, UploadParams, SchemaParams, PopulateGraphSchemaParams, ChatBotParams, MetricParams, APIResponse } from './apiTypes'
 
+const DEFAULT_SCHEMA = {
+	labels: [
+		'File',
+		'Access',
+		'PeerReview',
+		'DatabaseType',
+		'Area',
+		'Language',
+		'Editor',
+		'Author',
+		'Institution',
+		'Keyword',
+		'Citation',
+		'Topic',
+		'PublicationDate',
+		'Journal',
+		'FundingAgency',
+		'Country',
+		'Methodology',
+		'ResearchField',
+		'Affiliation',
+		'DocumentType',
+		'ExperimentType',
+		'ImpactFactor',
+		'Conference',
+		'Publisher',
+		'Reference',
+		'Grant',
+		'Version',
+	],
+	relationshipTypes: [
+		'HAS_ACCESS',
+		'HAS_PEER_REVIEW',
+		'HAS_DATABASE_TYPE',
+		'BELONGS_TO_AREA',
+		'IN_LANGUAGE',
+		'PUBLISHED_BY',
+		'WRITTEN_BY',
+		'AFFILIATED_WITH',
+		'HAS_KEYWORD',
+		'CITES',
+		'RELATES_TO_TOPIC',
+		'PUBLISHED_IN',
+		'FUNDED_BY',
+		'ORIGINATES_FROM',
+		'SIMILAR_TO',
+		'REFERENCED_BY',
+		'USES_METHOD',
+		'STUDIES_FIELD',
+		'HAS_DOCUMENT_TYPE',
+		'PART_OF_CONFERENCE',
+		'PUBLISHED_WITH_PUBLISHER',
+		'SUPPORTED_BY_GRANT',
+		'MENTIONS_REFERENCE',
+		'HAS_IMPACT_FACTOR',
+		'HAS_EXPERIMENT_TYPE',
+		'HAS_VERSION',
+		'DERIVED_FROM',
+		'IS_BASED_ON',
+	],
+}
+
 export class LLMGraphBuilderClient {
 	private baseUrl: string
 
@@ -92,27 +154,29 @@ export class LLMGraphBuilderClient {
 	async extract(
 		params: ConnectParams & {
 			model: string
-			source_url?: string
-			aws_access_key_id?: string
-			aws_secret_access_key?: string
-			wiki_query?: string
-			max_sources?: string
-			gcs_project_id?: string
-			gcs_bucket_name?: string
-			gcs_bucket_folder?: string
-			gcs_blob_filename?: string
+			file_name: string
 			source_type: string
-			file_name?: string
-			allowedNodes?: string
-			allowedRelationship?: string
-			language?: string
-			access_token?: string
 			retry_condition?: string
 		}
 	): Promise<APIResponse> {
-		return fetchAPI(`${this.baseUrl}/extract`, 'POST', params)
-	}
+		const allowedNodes = DEFAULT_SCHEMA.labels.join(',') || ''
+		const allowedRelationship = DEFAULT_SCHEMA.relationshipTypes.join(',') || ''
 
+		if (!allowedNodes || !allowedRelationship) {
+			throw new Error('Invalid schema data: allowedNodes or allowedRelationship is missing.')
+		}
+
+		return fetchAPI(
+			`${this.baseUrl}/extract`,
+			'POST',
+			{
+				...params,
+				allowedNodes,
+				allowedRelationship,
+			},
+			true
+		)
+	}
 	async getSourcesList(params: ConnectParams): Promise<APIResponse> {
 		return fetchAPI(`${this.baseUrl}/sources_list`, 'GET', params)
 	}
@@ -145,12 +209,21 @@ export class LLMGraphBuilderClient {
 
 	async deleteDocumentAndEntities(
 		params: ConnectParams & {
-			filenames: string
-			source_types: string
+			filenames: string[]
+			source_types: string[]
 			deleteEntities: string
 		}
 	): Promise<APIResponse> {
-		return fetchAPI(`${this.baseUrl}/delete_document_and_entities`, 'POST', params)
+		return fetchAPI(
+			`${this.baseUrl}/delete_document_and_entities`,
+			'POST',
+			{
+				...params,
+				filenames: JSON.stringify(params.filenames),
+				source_types: JSON.stringify(params.source_types),
+			},
+			true
+		)
 	}
 
 	async getDocumentStatus(params: ConnectParams & { file_name: string }): Promise<APIResponse> {

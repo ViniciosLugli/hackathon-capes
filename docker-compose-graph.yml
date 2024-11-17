@@ -24,6 +24,7 @@ services:
             - NUMBER_OF_CHUNKS_TO_COMBINE=${NUMBER_OF_CHUNKS_TO_COMBINE-6}
             - ENTITY_EMBEDDING=${ENTITY_EMBEDDING-False}
             - GCS_FILE_CACHE=${GCS_FILE_CACHE-False}
+            - GOOGLE_CREDENTIALS=${GOOGLE_CREDENTIALS-}
             #      - LLM_MODEL_CONFIG_anthropic_claude_35_sonnet=${LLM_MODEL_CONFIG_anthropic_claude_35_sonnet-}
             #      - LLM_MODEL_CONFIG_fireworks_llama_v3_70b=${LLM_MODEL_CONFIG_fireworks_llama_v3_70b-}
             #      - LLM_MODEL_CONFIG_azure_ai_gpt_4o=${LLM_MODEL_CONFIG_azure_ai_gpt_4o-}

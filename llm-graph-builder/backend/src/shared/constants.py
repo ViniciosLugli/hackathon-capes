@@ -15,7 +15,7 @@ GROQ_MODELS = ["groq-llama3"]
 BUCKET_UPLOAD = 'llm-graph-builder-upload'
 BUCKET_FAILED_FILE = 'llm-graph-builder-failed'
 PROJECT_ID = 'llm-experiments-387609'
-GRAPH_CHUNK_LIMIT = 80
+GRAPH_CHUNK_LIMIT = 100
 
 
 #query
@@ -174,8 +174,8 @@ LIMIT $limit
 """
 
 ## CHAT SETUP
-CHAT_SEARCH_KWARG_SCORE_THRESHOLD = 0.5
-CHAT_DOC_SPLIT_SIZE = 6000
+CHAT_SEARCH_KWARG_SCORE_THRESHOLD = 0.35
+CHAT_DOC_SPLIT_SIZE = 5000
 CHAT_EMBEDDING_FILTER_SCORE_THRESHOLD = 0.10
 
 CHAT_TOKEN_CUT_OFF = {
@@ -188,7 +188,7 @@ CHAT_SYSTEM_TEMPLATE = """
 You are an AI-powered article search assistant. Your task is to retrieve and summarize articles based on user queries, using the provided context of available articles. Always adhere strictly to the guidelines below to ensure professional and accurate assistance.
 
 ### Guidelines:
-1. **JSON-Only Responses**: Always provide answers in a JSON format. Even in cases of ambiguity or errors, the structure must remain consistent. Ignore duplicated curly bracket characters, use default json format.
+1. **JSON-Only Responses**: Always provide answers in a JSON format. Even in cases of ambiguity or errors, the structure must remain consistent. Ignore duplicated curly bracket characters, use default json format for json parsing with JSON.parse() of javascript.
 2. **Article Summaries**: Provide concise, accurate summaries (abstracts) of articles that match the user query. Each summary should encapsulate the article's key insights and relevance.
 3. **Query Matching**:
     - Use the provided context to match articles with the user's query.
@@ -200,6 +200,7 @@ You are an AI-powered article search assistant. Your task is to retrieve and sum
 6. **Include All Relevant Results**:
     - Return all unique articles matching the query.
     - Prioritize by relevance but avoid duplicate results.
+    - Dont include the same article in the results multiple times.
 7. **Format Consistency**: Ensure JSON format adheres to the provided structure regardless of query complexity.
 8. **Professional Tone**: Maintain a neutral and informative tone in abstracts and responses.
 9. **Abstract based on Context**: Summarize articles based on the context provided, explaining why the article is relevant to the query.
@@ -251,7 +252,7 @@ You are an AI-powered article search assistant. Your task is to retrieve and sum
 QUESTION_TRANSFORM_TEMPLATE = "Given the below conversation, generate a search query to look up in order to get information relevant to the conversation. Only respond with the query, nothing else."
 
 ## CHAT QUERIES
-VECTOR_SEARCH_TOP_K = 20
+VECTOR_SEARCH_TOP_K = 100
 
 VECTOR_SEARCH_QUERY = """
 WITH node AS chunk, score
@@ -263,12 +264,12 @@ WITH d, chunk_scores,
 
 ORDER BY max_score DESC
 
-LIMIT 6
+LIMIT 10
 
 WITH d, chunk_scores
 UNWIND chunk_scores AS cs
 ORDER BY cs.score DESC
-WITH d, collect({chunk: cs.chunk, score: cs.score})[0..3] AS top_chunks
+WITH d, collect({chunk: cs.chunk, score: cs.score})[0..3] AS top_chunks  // Aumentado para 3 chunks por documento
 
 WITH d,
      [c IN top_chunks | c.chunk.text] AS texts,
@@ -289,18 +290,26 @@ RETURN text,
 """
 
 ### Vector graph search
-VECTOR_GRAPH_SEARCH_ENTITY_LIMIT = 80
+VECTOR_GRAPH_SEARCH_ENTITY_LIMIT = 200
 VECTOR_GRAPH_SEARCH_EMBEDDING_MIN_MATCH = 0.3
 VECTOR_GRAPH_SEARCH_EMBEDDING_MAX_MATCH = 1.0
-VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MINMAX_CASE = 20
-VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MAX_CASE = 80
+VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MINMAX_CASE = 10
+VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MAX_CASE = 200
 
 VECTOR_GRAPH_SEARCH_QUERY_PREFIX = """
 WITH node as chunk, score
 // find the document of the chunk
 MATCH (chunk)-[:PART_OF]->(d:Document)
-// aggregate chunk-details
-WITH d, collect(DISTINCT {chunk: chunk, score: score}) AS chunks, avg(score) as avg_score
+// aggregate chunk-details per document and limit chunks per document
+WITH d,
+     collect(DISTINCT {chunk: chunk, score: score})[0..2] AS chunks,
+     avg(score) as avg_score
+// Only keep top scoring chunks per document
+WHERE size(chunks) > 0
+// Order by document score and take more documents
+WITH d, chunks, avg_score
+ORDER BY avg_score DESC
+LIMIT 10  // Aumentado de 2 para 10 documentos diferentes
 // fetch entities
 CALL { WITH chunks
 UNWIND chunks as chunkScore
@@ -315,12 +324,7 @@ VECTOR_GRAPH_SEARCH_ENTITY_QUERY = """
 
     WITH
     CASE
-        WHEN e.embedding IS NULL OR ({embedding_match_min} <= vector.similarity.cosine($embedding, e.embedding) AND vector.similarity.cosine($embedding, e.embedding) <= {embedding_match_max}) THEN
-            collect {{
-                OPTIONAL MATCH path=(e)(()-[rels:!HAS_ENTITY&!PART_OF]-()){{0,1}}(:!Chunk&!Document&!__Community__)
-                RETURN path LIMIT {entity_limit_minmax_case}
-            }}
-        WHEN e.embedding IS NOT NULL AND vector.similarity.cosine($embedding, e.embedding) >  {embedding_match_max} THEN
+        WHEN e.embedding IS NULL OR ({embedding_match_min} <= vector.similarity.cosine($embedding, e.embedding)) THEN
             collect {{
                 OPTIONAL MATCH path=(e)(()-[rels:!HAS_ENTITY&!PART_OF]-()){{0,2}}(:!Chunk&!Document&!__Community__)
                 RETURN path LIMIT {entity_limit_max_case}
@@ -402,10 +406,10 @@ VECTOR_GRAPH_SEARCH_QUERY = VECTOR_GRAPH_SEARCH_QUERY_PREFIX+ VECTOR_GRAPH_SEARC
 ) + VECTOR_GRAPH_SEARCH_QUERY_SUFFIX
 
 ### Local community search
-LOCAL_COMMUNITY_TOP_K = 20
-LOCAL_COMMUNITY_TOP_CHUNKS = 10
-LOCAL_COMMUNITY_TOP_COMMUNITIES = 10
-LOCAL_COMMUNITY_TOP_OUTSIDE_RELS = 20
+LOCAL_COMMUNITY_TOP_K = 40
+LOCAL_COMMUNITY_TOP_CHUNKS = 20
+LOCAL_COMMUNITY_TOP_COMMUNITIES = 20
+LOCAL_COMMUNITY_TOP_OUTSIDE_RELS = 40
 
 LOCAL_COMMUNITY_SEARCH_QUERY = """
 WITH collect(node) AS nodes,

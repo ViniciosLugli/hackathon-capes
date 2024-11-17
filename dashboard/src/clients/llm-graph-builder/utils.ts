@@ -1,11 +1,26 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import qs from 'qs'
 import { APIResponse } from './apiTypes'
 
-export async function fetchAPI<T>(url: string, method: 'GET' | 'POST', body?: Record<string, any>): Promise<APIResponse<T>> {
-	const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
+export async function fetchAPI<T>(url: string, method: 'GET' | 'POST', body?: Record<string, any>, isMultipart: boolean = false): Promise<APIResponse<T>> {
+	const headers: Record<string, string> = {}
 
-	const data = body ? qs.stringify(body) : undefined
+	let data
+	if (isMultipart && body) {
+		const formData = new FormData()
+		Object.entries(body).forEach(([key, value]) => {
+			if (Array.isArray(value)) {
+				formData.append(key, JSON.stringify(value))
+			} else {
+				formData.append(key, value as string)
+			}
+		})
+		data = formData
+		headers['Content-Type'] = 'multipart/form-data'
+	} else if (body) {
+		data = qs.stringify(body)
+		headers['Content-Type'] = 'application/x-www-form-urlencoded'
+	}
 
 	try {
 		const res = await axios({
@@ -13,16 +28,23 @@ export async function fetchAPI<T>(url: string, method: 'GET' | 'POST', body?: Re
 			method,
 			headers,
 			data,
+			validateStatus: (status) => status < 500,
 		})
 
-		return res.data
-	} catch (error: any) {
-		if (error.response) {
-			throw new Error(`Failed to fetch ${url}: ${error.response.statusText}`)
-		} else if (error.request) {
-			throw new Error(`No response from ${url}: ${error.message}`)
-		} else {
-			throw new Error(`Error in request to ${url}: ${error.message}`)
+		if (res.status !== 200) {
+			throw new Error(`Server responded with status ${res.status}: ${res.statusText} (${JSON.stringify(res.data)})`)
 		}
+
+		return res.data
+	} catch (error) {
+		if (axios.isAxiosError(error)) {
+			const axiosError = error as AxiosError
+			if (axiosError.response) {
+				throw new Error(`Server error (${axiosError.response.status}): ${axiosError.response.statusText}`)
+			} else if (axiosError.request) {
+				throw new Error(`No response from server: ${axiosError.message}`)
+			}
+		}
+		throw new Error(`Request failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
 	}
 }
