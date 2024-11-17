@@ -229,7 +229,7 @@ You are an AI-powered article search assistant. Your task is to retrieve and sum
          "abstract": "Este artigo examina o papel transformador da inteligência artificial na educação moderna, destacando aplicações como aprendizado personalizado, análises preditivas do desempenho dos alunos e tarefas administrativas automatizadas. É recomendado porque aborda diretamente como a IA pode aprimorar práticas e resultados educacionais, alinhando-se ao foco da consulta em IA na educação."
       }},
       {{
-         "article_identifier": "ai_education_02.pdf", // From the filename: W4398183427_ai_education_02.pdf
+         "article_identifier": "W4398183427", // From the filename: W4398183427_ai_education_02.pdf
          "abstract": "Focado na integração da IA em tecnologias educacionais, este artigo discute ferramentas que apoiam aprendizado adaptativo, melhoram a acessibilidade e promovem estratégias inovadoras de ensino. É recomendado porque explora aplicações práticas da IA no EdTech, tornando-o altamente relevante para a consulta sobre IA aplicada à educação."
       }}
    ]
@@ -291,7 +291,7 @@ RETURN text,
 
 ### Vector graph search
 VECTOR_GRAPH_SEARCH_ENTITY_LIMIT = 100
-VECTOR_GRAPH_SEARCH_EMBEDDING_MIN_MATCH = 0.3
+VECTOR_GRAPH_SEARCH_EMBEDDING_MIN_MATCH = 0.1
 VECTOR_GRAPH_SEARCH_EMBEDDING_MAX_MATCH = 1.0
 VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MINMAX_CASE = 10
 VECTOR_GRAPH_SEARCH_ENTITY_LIMIT_MAX_CASE = 100

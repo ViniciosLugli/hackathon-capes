@@ -432,7 +432,7 @@ def process_chat_response(messages, history, question, model, graph, document_na
         if docs:
             content, result, total_tokens,formatted_docs = process_documents(docs, question, messages, llm, model, chat_mode_settings)
         else:
-            content = "I couldn't find any relevant documents to answer your question."
+            content = '{"results": []}'
             result = {"sources": list(), "nodedetails": list(), "entities": list()}
             total_tokens = 0
             formatted_docs = ""
