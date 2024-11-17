@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CircularProgress } from '@nextui-org/progress'
-import { Article } from '@/types'
-import { Printer, Download, LockOpen, Share2, Sparkles } from 'lucide-react'
+import { Article, DoiInfo } from '@/types'
+import { Printer, Download, LockOpen, Share2, Sparkles, Users, MessageSquare } from 'lucide-react'
 import { BackgroundGradient } from '@/components/ui/background-gradient'
 import { TextGenerateEffect } from '@/components/ui/text-generate-effect'
 import { ArticleModal } from '@/components/ArticleModal'
@@ -17,15 +17,6 @@ import { handlePrint, handleDownload, handleShare } from '@/utils/article'
 interface ArticleCardProps {
 	article: Article
 	index: number
-}
-
-interface DoiInfo {
-	journal: string
-	authors: string[]
-	pubdate: number
-	score: number
-	readers_count: number
-	cited_by_posts_count: number
 }
 
 export function ArticleCard({ article, index }: ArticleCardProps) {
@@ -42,7 +33,7 @@ export function ArticleCard({ article, index }: ArticleCardProps) {
 
 	const fetchDoiInfo = async () => {
 		try {
-			const response = await fetch(`/api/doi/info?doi=${article.doi}`)
+			const response = await fetch(`https://api.altmetric.com/v1/doi/${article.doi}`)
 			if (!response.ok) {
 				throw new Error('Failed to fetch DOI info')
 			}
@@ -122,7 +113,7 @@ export function ArticleCard({ article, index }: ArticleCardProps) {
 							<div className="flex flex-col sm:flex-row items-start gap-4">
 								<div className="flex-1">
 									<div className="flex items-center gap-2 mb-2">
-										<span className="text-lg font-medium text-muted-foreground">{index}</span>
+										{!isAiRecommended && <span className="text-lg font-medium text-muted-foreground">{index}</span>}
 										{article.isOpenAccess && (
 											<div className="flex items-center gap-1 text-sm">
 												<LockOpen className="w-4 h-4 text-green-500" />
@@ -171,6 +162,22 @@ export function ArticleCard({ article, index }: ArticleCardProps) {
 											</Badge>
 										)}
 									</div>
+									{doiInfo && (
+										<div className="mt-4 flex flex-wrap gap-4">
+											<div className="flex items-center gap-2">
+												<Users className="w-4 h-4" />
+												<span>{doiInfo.readers_count} leitores</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<MessageSquare className="w-4 h-4" />
+												<span>{doiInfo.cited_by_posts_count} citações</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<Sparkles className="w-4 h-4" />
+												<span>Score: {doiInfo.score.toFixed(2)}</span>
+											</div>
+										</div>
+									)}
 								</div>
 								<div className="flex sm:flex-col gap-2 mt-4 sm:mt-0">
 									<Button
@@ -210,7 +217,7 @@ export function ArticleCard({ article, index }: ArticleCardProps) {
 				</BackgroundGradient>
 			</motion.div>
 
-			<ArticleModal article={article} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} isAiRecommended={isAiRecommended} />
+			<ArticleModal article={article} doiInfo={doiInfo} isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} isAiRecommended={isAiRecommended} />
 		</>
 	)
 }

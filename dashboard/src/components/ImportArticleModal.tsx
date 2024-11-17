@@ -43,13 +43,20 @@ export function ImportArticleModal({ isOpen, onClose, onImport }: ImportArticleM
 
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="sm:max-w-[825px]">
 				<DialogHeader>
 					<DialogTitle>Importar artigo</DialogTitle>
 				</DialogHeader>
 				<div className="grid gap-4 py-4">
+					<p className="text-sm text-gray-600">Insira o link ou ID do artigo que deseja importar.</p>
 					<div className="grid grid-cols-4 items-center gap-4">
-						<Input id="article-input" className="col-span-4" placeholder="Link ou ID do CAPES" value={input} onChange={(e) => setInput(e.target.value)} />
+						<Input
+							id="article-input"
+							className="col-span-4"
+							placeholder="Ex: https://www.periodicos.capes.gov.br/index.php/acervo/buscador.html?task=detalhes&source=&id=W4319081857"
+							value={input}
+							onChange={(e) => setInput(e.target.value)}
+						/>
 					</div>
 				</div>
 				<Button onClick={handleImport} className="text-white">

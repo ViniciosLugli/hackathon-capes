@@ -6,7 +6,7 @@ import { ArticleList } from '@/components/ArticleList'
 import { ArticleListAi } from '@/components/ArticleListAi'
 import { ArticleModal } from '@/components/ArticleModal'
 import { ImportArticleModal } from '@/components/ImportArticleModal'
-import { Article } from '@/types'
+import { Article, DoiInfo } from '@/types'
 import { useToast } from '@/hooks/use-toast'
 import { Input } from '@/components/ui/input'
 import { Search, ImportIcon as FileImport } from 'lucide-react'
@@ -33,10 +33,11 @@ export function SearchEngine() {
 	const [currentFilters, setCurrentFilters] = useState({})
 	const [loadingMessage, setLoadingMessage] = useState('')
 	const [advancedQuery, setAdvancedQuery] = useState('')
-	const [loadingTime, setLoadingTime] = useState(10)
+	const [loadingTime, setLoadingTime] = useState(15)
 	const { toast } = useToast()
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 	const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+	const [selectedDoiInfo, setSelectedDoiInfo] = useState<DoiInfo | null>(null)
 
 	const handleImportArticle = async (siteId: string) => {
 		try {
@@ -54,6 +55,21 @@ export function SearchEngine() {
 			}
 
 			setSelectedArticle(importedArticle.article)
+
+			const response_doi = await fetch(`https://api.altmetric.com/v1/doi/${importedArticle.article.doi}`)
+			if (!response_doi.ok) {
+				throw new Error('Failed to fetch DOI info')
+			}
+			const data = await response_doi.json()
+			setSelectedDoiInfo({
+				journal: data.journal,
+				authors: data.authors,
+				pubdate: data.pubdate,
+				score: data.score,
+				readers_count: data.readers_count,
+				cited_by_posts_count: data.cited_by_posts_count,
+			})
+
 			setIsImportModalOpen(false)
 			toast({
 				title: 'Artigo importado com sucesso',
@@ -258,7 +274,7 @@ export function SearchEngine() {
 				<ArticleList articles={articles} isLoading={isLoading} totalResults={totalResults} currentPage={currentPage} pageSize={pageSize} onPageChange={handlePageChange} />
 			</main>
 			<ImportArticleModal isOpen={isImportModalOpen} onClose={() => setIsImportModalOpen(false)} onImport={handleImportArticle} />
-			{selectedArticle && <ArticleModal article={selectedArticle} isOpen={!!selectedArticle} onClose={() => setSelectedArticle(null)} />}
+			{selectedArticle && <ArticleModal article={selectedArticle} doiInfo={selectedDoiInfo} isOpen={!!selectedArticle} onClose={() => setSelectedArticle(null)} />}
 		</div>
 	)
 }

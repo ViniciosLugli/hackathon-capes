@@ -36,3 +36,30 @@ export interface FilterOptions {
 	statuses: string[]
 	journalNames: string[]
 }
+
+export interface DoiInfo {
+	journal: string
+	authors: string[]
+	pubdate: number
+	score: number
+	readers_count: number
+	cited_by_posts_count: number
+}
+
+export interface Citation {
+	id: string
+	citingArticleId: string
+	citedArticleId: string | null
+	citedSiteId: string | null
+	citedDoi: string
+	citedTitle: string
+	citedAuthors: string[]
+	citedJournal: string
+	citedVolume: string | null
+	citedIssue: string | null
+	citedPages: string | null
+	citedYear: number
+	citedUrl: string
+	createdAt: string
+	updatedAt: string
+}
