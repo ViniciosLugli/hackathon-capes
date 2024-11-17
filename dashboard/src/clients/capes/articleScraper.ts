@@ -1,6 +1,6 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
-
+import { Article as PrismaArticle, Citation as PrismaCitation, Topic as PrismaTopic } from '@prisma/client'
 export interface Article {
 	id: string
 	title: string
@@ -30,6 +30,42 @@ export interface Citation {
 	year?: number
 	doi?: string
 	url?: string
+}
+export function fromPrismaArticle(
+	prismaArticle: PrismaArticle & {
+		topics: PrismaTopic[]
+		citationsMade: PrismaCitation[]
+		citationsReceived: PrismaCitation[]
+	}
+): Article {
+	return {
+		id: prismaArticle.id,
+		title: prismaArticle.title,
+		abstract: prismaArticle.abstract,
+		publicationType: prismaArticle.publicationType || '',
+		publicationYear: prismaArticle.publicationYear || 0,
+		institutions: prismaArticle.institutions,
+		volume: prismaArticle.volume || '',
+		issue: prismaArticle.issue || '',
+		language: prismaArticle.language,
+		doi: prismaArticle.doi || '',
+		issn: prismaArticle.issn || '',
+		authors: prismaArticle.authors,
+		topics: prismaArticle.topics.map((topic) => topic.name),
+		isOpenAccess: prismaArticle.isOpenAccess,
+		isPeerReviewed: prismaArticle.isPeerReviewed,
+		citations: prismaArticle.citationsMade.map((citation) => ({
+			authors: citation.citedAuthors,
+			title: citation.citedTitle || '',
+			publisher: citation.citedJournal || '',
+			volume: citation.citedVolume,
+			issue: citation.citedIssue,
+			pages: citation.citedPages,
+			year: citation.citedYear,
+			doi: citation.citedDoi,
+			url: citation.citedUrl,
+		})),
+	}
 }
 
 export async function scrapeArticleById(articleId: string): Promise<Article> {

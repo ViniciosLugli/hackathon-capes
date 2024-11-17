@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { LLMGraphBuilderClient } from '@/clients/llm-graph-builder/apiClient'
 import { v4 as uuidv4 } from 'uuid'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
 	try {
@@ -33,8 +36,24 @@ export async function POST(request: NextRequest) {
 			mode: 'graph_vector_fulltext',
 			document_names: [],
 		})
-		const anwser = response.data.info.metric_details.answer.replace('{{', '{').replace('}}', '}')
-		return NextResponse.json(JSON.parse(anwser), { status: 200 })
+
+		const answer = JSON.parse(response.data.info.metric_details.answer.replace('{{', '{').replace('}}', '}'))
+		const parsedResponsePromises = answer.results.map(async (result: any) => {
+			const articleData = await prisma.article.findUnique({
+				where: {
+					id: result.article_identifier,
+				},
+			})
+
+			return {
+				...articleData,
+				aiResume: result.abstract,
+			}
+		})
+
+		const parsedResponse = await Promise.all(parsedResponsePromises)
+
+		return NextResponse.json(parsedResponse, { status: 200 })
 	} catch (error: any) {
 		console.error('Error in chat_bot route:', error.message)
 		return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

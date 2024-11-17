@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
+import { createPDFFileFromArticle } from '@/utils/fileParser'
 import { scrapeArticleById, Article } from '@/clients/capes/articleScraper'
 import { LLMGraphBuilderClient } from '@/clients/llm-graph-builder/apiClient'
-import { createPDFFileFromArticle } from '@/utils/fileParser'
 
 const prisma = new PrismaClient()
-
 export async function GET(request: NextRequest) {
 	try {
 		const { searchParams } = new URL(request.url)
 
 		const title = searchParams.get('title') || undefined
 		const authors = searchParams.getAll('authors').filter(Boolean)
-		const publicationYear = searchParams.get('publicationYear')
+		const publicationYearFrom = searchParams.get('publicationYearFrom')
+		const publicationYearTo = searchParams.get('publicationYearTo')
 		const topics = searchParams.getAll('topics').filter(Boolean)
 		const language = searchParams.get('language') || undefined
 		const isOpenAccess = searchParams.get('isOpenAccess')
@@ -30,22 +30,41 @@ export async function GET(request: NextRequest) {
 		const whereClause: any = {}
 
 		if (title) {
-			whereClause.title = {
-				contains: title,
-				mode: 'insensitive',
-			}
+			whereClause.OR = [
+				...(whereClause.OR || []),
+				{
+					title: {
+						contains: title,
+						mode: 'insensitive',
+					},
+				},
+				{
+					abstract: {
+						contains: title,
+						mode: 'insensitive',
+					},
+				},
+			]
 		}
 
 		if (authors.length > 0) {
-			whereClause.authors = {
-				hasSome: authors,
-			}
+			whereClause.OR = [
+				...(whereClause.OR || []),
+				...authors.map((author) => ({
+					authors: {
+						has: author,
+					},
+				})),
+			]
 		}
 
-		if (publicationYear && publicationYear !== '0') {
-			const year = parseInt(publicationYear)
-			if (!isNaN(year) && year > 0) {
-				whereClause.publicationYear = year
+		if (publicationYearFrom || publicationYearTo) {
+			whereClause.publicationYear = {}
+			if (publicationYearFrom) {
+				whereClause.publicationYear.gte = parseInt(publicationYearFrom)
+			}
+			if (publicationYearTo) {
+				whereClause.publicationYear.lte = parseInt(publicationYearTo)
 			}
 		}
 
@@ -97,8 +116,6 @@ export async function GET(request: NextRequest) {
 			where: whereClause,
 			include: {
 				topics: true,
-				citationsMade: true,
-				citationsReceived: true,
 			},
 			skip: (page - 1) * pageSize,
 			take: pageSize,
@@ -107,11 +124,15 @@ export async function GET(request: NextRequest) {
 			},
 		})
 
+		const totalCount = await prisma.article.count({
+			where: whereClause,
+		})
+
 		return NextResponse.json({
 			data: articles,
 			page,
 			pageSize,
-			total: articles.length,
+			total: totalCount,
 			message: articles.length > 0 ? undefined : 'No articles found',
 		})
 	} catch (error: any) {

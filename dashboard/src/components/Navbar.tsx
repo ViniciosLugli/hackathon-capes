@@ -2,66 +2,43 @@
 
 import * as React from 'react'
 import Image from 'next/image'
-import { BellDot } from 'lucide-react'
+import Link from 'next/link'
+import { BellDot, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from '@/components/ui/navigation-menu'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 
 import logoCapes from '@/assets/logocapes2.png'
 import logoPeriodicos from '@/assets/logo_periodicos-simples2.jpg'
 
 export function Navbar() {
+	const [isOpen, setIsOpen] = React.useState(false)
+
 	return (
 		<header className="border-b bg-white shadow-sm">
 			<div className="container mx-auto px-4">
 				<div className="flex h-16 items-center justify-between">
 					<div className="flex items-center gap-4 w-1/4">
 						<Image src={logoCapes} alt="CAPES Logo" className="h-6 w-auto" />
-						<div className="h-6 w-px bg-[#2E144D]" />
-						<Image src={logoPeriodicos} alt="Periódicos Logo" className="h-6 w-auto" />
+						<div className="h-6 w-px bg-[#2E144D] hidden sm:block" />
+						<Image src={logoPeriodicos} alt="Periódicos Logo" className="h-6 w-auto hidden sm:block" />
 					</div>
-					<NavigationMenu className="flex-grow flex justify-center">
+					<NavigationMenu className="hidden md:flex flex-grow justify-center">
 						<NavigationMenuList className="space-x-2">
 							<NavigationMenuItem>
-								<NavigationMenuTrigger className="text-[#2E144D]">Acervo</NavigationMenuTrigger>
-								<NavigationMenuContent>
-									<div className="grid gap-3 p-4 w-[400px]">
-										<NavigationMenuLink asChild>
-											<a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-[#5EC5E0] hover:text-white focus:bg-[#5EC5E0] focus:text-white">
-												<div className="text-sm font-medium leading-none">Bases de Dados</div>
-												<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">Acesse bases de dados científicas nacionais e internacionais</p>
-											</a>
-										</NavigationMenuLink>
-										<NavigationMenuLink asChild>
-											<a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-[#5EC5E0] hover:text-white focus:bg-[#5EC5E0] focus:text-white">
-												<div className="text-sm font-medium leading-none">Periódicos</div>
-												<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">Explore revistas científicas em diversas áreas do conhecimento</p>
-											</a>
-										</NavigationMenuLink>
-									</div>
-								</NavigationMenuContent>
+								<Link href="/" legacyBehavior passHref>
+									<NavigationMenuLink className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md">Início</NavigationMenuLink>
+								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
-								<NavigationMenuTrigger className="text-[#2E144D]">Treinamentos</NavigationMenuTrigger>
-								<NavigationMenuContent>
-									<div className="grid gap-3 p-4 w-[400px]">
-										<NavigationMenuLink asChild>
-											<a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-[#5EC5E0] hover:text-white focus:bg-[#5EC5E0] focus:text-white">
-												<div className="text-sm font-medium leading-none">Agenda</div>
-												<p className="line-clamp-2 text-sm leading-snug text-muted-foreground">Confira os próximos treinamentos disponíveis</p>
-											</a>
-										</NavigationMenuLink>
-									</div>
-								</NavigationMenuContent>
+								<Link href="/search" legacyBehavior passHref>
+									<NavigationMenuLink className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md">Pesquisa</NavigationMenuLink>
+								</Link>
 							</NavigationMenuItem>
 							<NavigationMenuItem>
-								<Button variant="ghost" size="sm" className="text-[#2E144D]">
-									Informativos
-								</Button>
-							</NavigationMenuItem>
-							<NavigationMenuItem>
-								<Button variant="ghost" size="sm" className="text-[#2E144D]">
-									Ajuda
-								</Button>
+								<Link href="/editor" legacyBehavior passHref>
+									<NavigationMenuLink className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md">Editor de artigo</NavigationMenuLink>
+								</Link>
 							</NavigationMenuItem>
 						</NavigationMenuList>
 					</NavigationMenu>
@@ -70,9 +47,33 @@ export function Navbar() {
 							<BellDot className="h-5 w-5" />
 							<span className="sr-only">Notificações</span>
 						</Button>
-						<Button variant="outline" className="border-[#2E144D] text-[#2E144D] hover:bg-[#2E144D] hover:text-white">
+						<Button variant="outline" className="border-[#2E144D] text-[#2E144D] hover:bg-[#2E144D] hover:text-white hidden sm:inline-flex">
 							Meu Espaço
 						</Button>
+						<Sheet open={isOpen} onOpenChange={setIsOpen}>
+							<SheetTrigger asChild>
+								<Button variant="ghost" size="icon" className="md:hidden">
+									<Menu className="h-5 w-5" />
+									<span className="sr-only">Menu</span>
+								</Button>
+							</SheetTrigger>
+							<SheetContent side="right">
+								<nav className="flex flex-col space-y-4">
+									<Link href="/" className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md" onClick={() => setIsOpen(false)}>
+										Início
+									</Link>
+									<Link href="/search" className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md" onClick={() => setIsOpen(false)}>
+										Pesquisa
+									</Link>
+									<Link href="/editor" className="text-[#2E144D] hover:bg-[#5EC5E0] hover:text-white px-3 py-2 rounded-md" onClick={() => setIsOpen(false)}>
+										Editor de artigo
+									</Link>
+									<Button variant="outline" className="border-[#2E144D] text-[#2E144D] hover:bg-[#2E144D] hover:text-white w-full" onClick={() => setIsOpen(false)}>
+										Meu Espaço
+									</Button>
+								</nav>
+							</SheetContent>
+						</Sheet>
 					</div>
 				</div>
 			</div>
