@@ -59,11 +59,17 @@ export default function Home() {
 		)
 	}, [])
 
+	const handleAddReference = useCallback((reference: string) => {
+		if (editorRef.current) {
+			editorRef.current.addReference(reference)
+		}
+	}, [])
+
 	return (
 		<main className="container mx-auto py-6 px-4">
 			<div className="flex flex-col lg:flex-row gap-6">
 				<div className="lg:w-1/4">
-					<RecommendedArticles initialArticles={recommendedArticles} currentContent={content} />
+					<RecommendedArticles initialArticles={recommendedArticles} currentContent={content} onAddReference={handleAddReference} />
 				</div>
 				<div className="lg:w-1/2">
 					<Editor

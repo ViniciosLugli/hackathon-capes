@@ -25,6 +25,7 @@ export interface EditorRef {
 	highlightLines: (issues: { id: string; lines: number[]; description: string; suggestion: string; priority: 'low' | 'medium' | 'high' }[]) => void
 	getContentWithLineNumbers: () => string
 	requestAICorrection: (issue: { id: string; lines: number[]; description: string; suggestion: string }, content: string) => void
+	addReference: (reference: string) => void
 }
 
 const STORAGE_KEY = 'scientific-article-editor-content'
@@ -70,7 +71,6 @@ const Editor = forwardRef<EditorRef, EditorProps>(({ onExport, onChange, initial
 		const contentLines = content.split('\n')
 		return lines.map((lineNumber) => contentLines[lineNumber - 1]).join('\n')
 	}, [])
-
 	useImperativeHandle(
 		ref,
 		() => ({
@@ -107,8 +107,18 @@ const Editor = forwardRef<EditorRef, EditorProps>(({ onExport, onChange, initial
 					console.error('Error requesting AI correction:', error)
 				}
 			},
+			addReference: (reference: string) => {
+				if (editorRef.current) {
+					const currentContent = editorRef.current.getValue()
+					const updatedContent = currentContent + '\n\n' + reference
+					editorRef.current.setValue(updatedContent)
+					setContent(updatedContent)
+					onChange(updatedContent)
+					localStorage.setItem(STORAGE_KEY, updatedContent)
+				}
+			},
 		}),
-		[updateDecorations, getAffectedLines]
+		[updateDecorations, getAffectedLines, onChange]
 	)
 
 	useEffect(() => {

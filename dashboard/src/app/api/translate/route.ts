@@ -6,44 +6,39 @@ const openai = new OpenAI({
 })
 
 export async function POST(req: NextRequest) {
-	const { content, issue } = await req.json()
+	const { article } = await req.json()
 
-	if (!content || !issue) {
-		return new Response('Content and issue are required', { status: 400 })
+	if (!article) {
+		return new Response('Article is required', { status: 400 })
 	}
 
-	const response = await openai.chat.completions.create({
-		model: 'gpt-4',
+	const stream = await openai.chat.completions.create({
+		model: 'gpt-4o-mini',
 		messages: [
-			{
-				role: 'system',
-				content: 'Você é um assistente especializado em corrigir problemas em artigos acadêmicos de acordo com as normas ABNT.',
-			},
+			{ role: 'system', content: 'Você é um tradutor que converte textos para o português. Traduza o texto exatamente como está, sem modificar nada no conteúdo ou no formato.' },
 			{
 				role: 'user',
-				content: `Corrija o seguinte trecho de acordo com a descrição do problema e a sugestão fornecida:
-
-Conteúdo: ${content}
-
-Problema: ${issue.description}
-Sugestão: ${issue.suggestion}
-
-Por favor, forneça o trecho corrigido em texto puro, apenas o conteúdo corrigindo`,
+				content: `Por favor, traduza o seguinte texto para o português sem alterar nada no conteúdo ou no formato:\n\n${article}`,
 			},
 		],
-		temperature: 0.7,
-		max_tokens: 500,
+		stream: true,
 	})
 
-	const correctedContent = response.choices[0]?.message?.content
-
-	if (!correctedContent) {
-		return new Response('Failed to generate correction', { status: 500 })
-	}
-
-	return new Response(JSON.stringify({ correctedContent }), {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-	})
+	return new Response(
+		new ReadableStream({
+			async start(controller) {
+				for await (const chunk of stream) {
+					const content = chunk.choices[0]?.delta?.content || ''
+					controller.enqueue(content)
+				}
+				controller.close()
+			},
+		}),
+		{
+			headers: {
+				'Content-Type': 'text/plain; charset=utf-8',
+				'Transfer-Encoding': 'chunked',
+			},
+		}
+	)
 }

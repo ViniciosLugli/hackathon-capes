@@ -47,7 +47,7 @@ export function ArticleCard({ article, index }: ArticleCardProps) {
 				cited_by_posts_count: data.cited_by_posts_count,
 			})
 		} catch (error) {
-			console.error('Error fetching DOI info:', error)
+			console.log('Error fetching DOI info:', error)
 			setError('Não foi possível obter informações adicionais sobre o artigo.')
 		}
 	}

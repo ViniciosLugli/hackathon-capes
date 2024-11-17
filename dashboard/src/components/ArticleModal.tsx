@@ -68,7 +68,7 @@ export function ArticleModal({ article, doiInfo, isOpen, onClose, isAiRecommende
 		if (isOpen) {
 			fetchCitations()
 			setIsJustOpened(true)
-			const timer = setTimeout(() => setIsJustOpened(false), 2000) // Remove highlight after 2 seconds
+			const timer = setTimeout(() => setIsJustOpened(false), 2000)
 			return () => clearTimeout(timer)
 		}
 	}, [isOpen, article.id])
