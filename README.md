@@ -1,5 +1,11 @@
 # AntLabyrinth
 
+Pitch: https://youtu.be/BrcQsJSQqW0
+
+Demo: https://youtu.be/_iwEbyWICrI
+
+---
+
 ![AntLabyrinth](https://github.com/user-attachments/assets/18af70bb-8cc6-459a-b8e7-ffd0d2fbac8a)
 
 ---
