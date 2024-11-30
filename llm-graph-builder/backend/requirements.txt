@@ -1,4 +1,4 @@
-aiohttp==3.9.3
+aiohttp==3.10.2
 aiosignal==1.3.1
 annotated-types==0.6.0
 antlr4-python3-runtime==4.9.3
@@ -11,14 +11,14 @@ beautifulsoup4==4.12.3
 boto3==1.34.140
 botocore==1.34.140
 cachetools==5.3.3
-certifi==2024.2.2
+certifi==2024.7.4
 cffi==1.16.0
 chardet==5.2.0
 charset-normalizer==3.3.2
 click==8.1.7
 coloredlogs==15.0.1
 contourpy==1.2.0
-cryptography==42.0.2
+cryptography==43.0.1
 cycler==0.12.1
 dataclasses-json==0.6.4
 dataclasses-json-speakeasy==0.5.11
@@ -57,7 +57,7 @@ httpcore==1.0.4
 httpx==0.27.0
 huggingface-hub
 humanfriendly==10.0
-idna==3.6
+idna==3.7
 importlib-resources==6.1.1
 pip-install==1.3.5
 iopath==0.1.10
@@ -95,13 +95,13 @@ multidict==6.0.5
 mypy-extensions==1.0.0
 neo4j-rust-ext
 networkx==3.2.1
-nltk==3.8.1
+nltk==3.9
 numpy==1.26.4
 omegaconf==2.3.0
-onnx==1.16.1
+onnx==1.17.0
 onnxruntime==1.18.1
 openai==1.47.1
-opencv-python==4.8.0.76
+opencv-python==4.8.1.78
 orjson==3.9.15
 packaging==23.2
 pandas==2.2.0
@@ -109,7 +109,7 @@ pdf2image==1.17.0
 pdfminer.six==20221105
 pdfplumber==0.10.4
 pikepdf==8.11.0
-pillow==10.2.0
+pillow==10.3.0
 pillow_heif==0.15.0
 portalocker==2.8.2
 proto-plus==1.23.0
@@ -144,7 +144,7 @@ shapely==2.0.3
 six==1.16.0
 sniffio==1.3.1
 soupsieve==2.5
-starlette==0.37.2
+starlette==0.40.0
 sse-starlette==2.1.2
 starlette-session==0.4.3
 sympy==1.12
@@ -153,7 +153,7 @@ tenacity==8.2.3
 tiktoken==0.7.0
 timm==0.9.12
 tokenizers==0.19
-tqdm==4.66.2
+tqdm==4.66.3
 transformers==4.42.3
 types-protobuf
 types-requests
@@ -172,7 +172,7 @@ wikipedia==1.4.0
 wrapt==1.16.0
 yarl==1.9.4
 youtube-transcript-api==0.6.2
-zipp==3.17.0
+zipp==3.19.1
 sentence-transformers==3.0.1
 google-cloud-logging==3.10.0
 PyMuPDF==1.24.5
